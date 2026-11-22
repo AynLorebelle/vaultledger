@@ -17,6 +17,7 @@ export type NavSection =
   | 'recurring'
   | 'goals'
   | 'squad'
+  | 'coach'
   | 'forecast'
   | 'accounts'
   | 'rules'
@@ -159,6 +160,17 @@ export interface VaultSettings {
   lastBackupAt: string | null;
   isDemoData: boolean;
   budgetRolloverAdjustments: Record<string, number>; // categoryId -> rollover carry-in amount
+  groqApiKey?: string;
+  groqModel?: string;
+}
+
+export interface AiChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
+  source?: 'groq-cloud' | 'local-offline';
+  modelUsed?: string;
 }
 
 export interface SquadMember {

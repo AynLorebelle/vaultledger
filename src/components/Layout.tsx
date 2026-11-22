@@ -26,6 +26,7 @@ import {
   Database,
   Sparkles,
   CheckCircle2,
+  Bot,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import type { NavSection, TimeRange } from '../types/finance';
@@ -89,6 +90,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       icon: Users,
       badge: 'Co-Op',
       badgeTone: 'positive',
+    },
+    {
+      id: 'coach',
+      label: 'Groq AI Coach',
+      icon: Bot,
+      badge: 'Groq',
+      badgeTone: 'primary',
     },
     {
       id: 'transactions',

@@ -10,6 +10,7 @@ import { BudgetsView } from './components/BudgetsView';
 import { RecurringView } from './components/RecurringView';
 import { GoalsDebtView } from './components/GoalsDebtView';
 import { SavingsSquadView } from './components/SavingsSquadView';
+import { AiCoachView, FloatingAiCoachWidget } from './components/AiCoachView';
 import { NetWorthForecaster } from './components/NetWorthForecaster';
 import { AccountsView } from './components/AccountsView';
 import { RulesView } from './components/RulesView';
@@ -177,6 +178,8 @@ export default function App() {
         return <GoalsDebtView />;
       case 'squad':
         return <SavingsSquadView />;
+      case 'coach':
+        return <AiCoachView />;
       case 'forecast':
         return (
           <NetWorthForecaster
@@ -216,6 +219,9 @@ export default function App() {
       <QuickAddModal />
       <CommandPalette />
       <ImportExportModal />
+
+      {/* Floating Groq AI Financial Coach Launcher */}
+      <FloatingAiCoachWidget />
 
       {/* Sonner Global Toaster */}
       <Toaster position="bottom-right" richColors closeButton />

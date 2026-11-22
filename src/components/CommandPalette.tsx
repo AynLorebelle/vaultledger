@@ -116,6 +116,16 @@ export const CommandPalette: React.FC = () => {
 
     const actions: PaletteItem[] = [
       {
+        id: 'act-groq-coach',
+        group: 'Actions',
+        title: 'Ask Groq AI Financial Coach (Online Llama 3.3 70B)',
+        subtitle: 'Chat with Groq AI for personalized financial advice based on your live vault',
+        keywords: 'groq ai chatbot financial advisor coach advice online llama',
+        icon: MessageSquareText,
+        badge: 'Groq AI',
+        onSelect: closeAnd(() => setActiveNav('coach')),
+      },
+      {
         id: 'act-ask-vault',
         group: 'Actions',
         title: 'Ask Your Vault (Offline Q&A)',

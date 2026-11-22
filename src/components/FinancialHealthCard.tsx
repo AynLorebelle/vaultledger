@@ -73,6 +73,7 @@ const NAV_CTA_LABELS: Record<NavSection, string> = {
   recurring: 'Review Recurring',
   goals: 'Open Goals & Debt',
   squad: 'Open Friend Squads',
+  coach: 'Ask AI Coach',
   forecast: 'Open Forecast',
   accounts: 'Inspect Accounts',
   rules: 'Open Rules',

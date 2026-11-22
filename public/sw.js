@@ -1,5 +1,5 @@
 // AYNLYTICS Offline-First Service Worker
-const CACHE_NAME = 'aynlytics-clay-cache-v3';
+const CACHE_NAME = 'aynlytics-clay-cache-v4';
 const SHELL_ASSETS = [
   './',
   './index.html',
