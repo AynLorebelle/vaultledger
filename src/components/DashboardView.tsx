@@ -39,8 +39,10 @@ import {
   computeSpendingHeatmap,
   formatCurrency,
 } from '../core/analytics';
+import { getEffectiveProfile } from '../core/aiCoach';
+import { CURRENCY_METADATA, SUPPORTED_CURRENCIES } from '../core/currency';
 import { computeSquadLeaderboard, createDefaultSavingsSquads } from '../core/savingsSquad';
-import type { VaultAnswerDrillAction } from '../types/finance';
+import type { CurrencyCode, VaultAnswerDrillAction } from '../types/finance';
 import { AskVaultPanel } from './AskVaultPanel';
 import { FinancialHealthCard } from './FinancialHealthCard';
 import { SankeyChart } from './SankeyChart';
@@ -55,6 +57,11 @@ export const DashboardView: React.FC = () => {
   const drillDownDate = useFinanceStore((s) => s.drillDownDate);
   const drillDownSearch = useFinanceStore((s) => s.drillDownSearch);
   const markBillPaidAndLog = useFinanceStore((s) => s.markBillPaidAndLog);
+  const setProfileModalOpen = useFinanceStore((s) => s.setProfileModalOpen);
+  const setBaseCurrency = useFinanceStore((s) => s.setBaseCurrency);
+  const openQuickAdd = useFinanceStore((s) => s.openQuickAdd);
+
+  const profile = getEffectiveProfile(data);
 
   const [trendMode, setTrendMode] = useState<'cashflow' | 'networth'>('cashflow');
   const [askQuery, setAskQuery] = useState('');
@@ -127,6 +134,75 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Personalized Profile Welcome & Quick Workflow Cockpit Bar */}
+      <section className="card clay-surface-lavender flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <button
+            type="button"
+            onClick={() => setProfileModalOpen(true)}
+            aria-label="Edit your profile"
+            className="w-13 h-13 rounded-2xl bg-white/90 border-3 border-white flex items-center justify-center text-2xl shadow-sm shrink-0 cursor-pointer hover:scale-105 transition-transform"
+          >
+            {profile.avatarEmoji}
+          </button>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-lg sm:text-xl font-extrabold text-[#1F2937] tracking-tight truncate">
+                Welcome back, {profile.displayName}!
+              </h1>
+              <span className="px-2.5 py-0.5 rounded-full bg-white/85 text-[11px] font-extrabold text-[#1F2937] tabular-nums">
+                Goal: {profile.monthlySavingsGoalPct}% savings
+              </span>
+            </div>
+            <p className="text-xs font-bold text-[#1F2937]/80 truncate mt-0.5">
+              {profile.tagline} • Active Currency: {CURRENCY_METADATA[currency].name} (
+              {CURRENCY_METADATA[currency].symbol})
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* Quick Currency Switcher right on Dashboard */}
+          <select
+            value={currency}
+            onChange={(e) => setBaseCurrency(e.target.value as CurrencyCode)}
+            aria-label="Change active currency"
+            className="tactile-input px-3 py-2 text-xs font-extrabold cursor-pointer"
+          >
+            {SUPPORTED_CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {CURRENCY_METADATA[c].symbol} {c}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={() => setProfileModalOpen(true)}
+            className="tactile-btn px-3.5 py-2 text-xs font-extrabold cursor-pointer bg-white/90 text-[#1F2937]"
+          >
+            Personalize Profile
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveNav('coach')}
+            className="tactile-btn-primary px-3.5 py-2 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>🌸</span>
+            <span>Chat with Aynieee AI</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openQuickAdd()}
+            className="tactile-btn px-3.5 py-2 text-xs font-extrabold cursor-pointer bg-white/90 text-[#1F2937]"
+          >
+            + Quick Expense
+          </button>
+        </div>
+      </section>
+
       {/* Local Natural-Language Q&A Bar */}
       <AskVaultPanel
         vault={data}

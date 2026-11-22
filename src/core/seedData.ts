@@ -31,6 +31,14 @@ function createDefaultSettings(isDemoData: boolean, nowIso: string): VaultSettin
     lastBackupAt: null,
     isDemoData,
     budgetRolloverAdjustments: {},
+    profile: {
+      displayName: 'Ayn Lorebelle',
+      tagline: 'Smart Saver & Co-Op Squad Leader',
+      avatarEmoji: '🌸',
+      clayAccent: '#FDBCB4',
+      monthlySavingsGoalPct: 25,
+      aynieeeTone: 'conyo_bestie',
+    },
   };
 }
 

@@ -118,11 +118,11 @@ export const CommandPalette: React.FC = () => {
       {
         id: 'act-groq-coach',
         group: 'Actions',
-        title: 'Ask Groq AI Financial Coach (Online Llama 3.3 70B)',
-        subtitle: 'Chat with Groq AI for personalized financial advice based on your live vault',
-        keywords: 'groq ai chatbot financial advisor coach advice online llama',
+        title: 'Ask Aynieee AI Financial Bestie (Online Groq AI)',
+        subtitle: 'Chat with Aynieee for personalized financial advice based on your live vault',
+        keywords: 'aynieee groq ai chatbot financial advisor coach advice online',
         icon: MessageSquareText,
-        badge: 'Groq AI',
+        badge: 'Aynieee AI',
         onSelect: closeAnd(() => setActiveNav('coach')),
       },
       {

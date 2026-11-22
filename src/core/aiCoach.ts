@@ -1,4 +1,4 @@
-import type { AiChatMessage, VaultData } from '../types/finance';
+import type { AiChatMessage, AynieeeTone, UserProfile, VaultData } from '../types/finance';
 import {
   computeCategorySpend,
   computeDashboardKPIs,
@@ -33,17 +33,60 @@ export const GROQ_MODELS: GroqModelOption[] = [
   },
 ];
 
+export interface AynieeeToneOption {
+  id: AynieeeTone;
+  label: string;
+  description: string;
+  systemInstruction: string;
+}
+
+export const AYNIEEE_TONE_OPTIONS: AynieeeToneOption[] = [
+  {
+    id: 'conyo_bestie',
+    label: 'Sassy Conyo Taglish Bestie',
+    description: 'Fun, direct Conyo Taglish financial bestie who hypes your wins & calls out overspending',
+    systemInstruction:
+      'Speak in sassy, witty, supportive Conyo Taglish (mixing English and Tagalog naturally like a smart Manila bestie, e.g. "Bestie, real talk...", "Grabe your savings rate is so solid!", "Chill muna sa shopping"). Keep financial numbers razor-sharp and accurate.',
+  },
+  {
+    id: 'gentle_coach',
+    label: 'Warm & Encouraging Coach',
+    description: 'Calm, supportive plain-English financial mentor',
+    systemInstruction:
+      'Speak in warm, encouraging, plain English. Explain financial concepts simply step-by-step and celebrate progress.',
+  },
+  {
+    id: 'strict_cfo',
+    label: 'Blunt No-Nonsense CFO',
+    description: 'Direct, analytical executive financial advisor focused on ROI & runway',
+    systemInstruction:
+      'Speak like a blunt, analytical CFO. Lead with the bottom-line numbers, highlight risks immediately, and give strict capital-allocation directives.',
+  },
+];
+
 export const AI_COACH_STARTER_PROMPTS: string[] = [
-  'Build me a 30-day savings plan based on my current cashflow',
+  'Aynieee, build me a 30-day savings plan from my cashflow!',
   'Where am I overspending this month and how much can I cut?',
   'How can I overtake #1 in our Friend Savings Squad?',
-  'Snowball vs Avalanche: what is the fastest way to clear my debt?',
+  'Snowball vs Avalanche: fastest way to clear my debt?',
   'Is my emergency fund runway safe right now?',
   'Analyze my 50/30/20 Needs, Wants & Savings split',
 ];
 
+export function getEffectiveProfile(vault: VaultData): UserProfile {
+  return {
+    displayName: vault.settings.profile?.displayName || 'Ayn Lorebelle',
+    tagline: vault.settings.profile?.tagline || 'Smart Saver & Co-Op Squad Leader',
+    avatarEmoji: vault.settings.profile?.avatarEmoji || '🌸',
+    clayAccent: vault.settings.profile?.clayAccent || '#FDBCB4',
+    monthlySavingsGoalPct: vault.settings.profile?.monthlySavingsGoalPct ?? 25,
+    aynieeeTone: vault.settings.profile?.aynieeeTone || 'conyo_bestie',
+  };
+}
+
 export function buildVaultFinancialContext(vault: VaultData): string {
   const cur = vault.settings.baseCurrency;
+  const profile = getEffectiveProfile(vault);
   const kpis = computeDashboardKPIs(vault, 'this_month');
   const health = computeFinancialHealthScore(vault);
   const categories = computeCategorySpend(vault, 'this_month')
@@ -62,10 +105,11 @@ export function buildVaultFinancialContext(vault: VaultData): string {
   );
 
   const lines: string[] = [
-    `=== AYNLYTICS LIVE VAULT SNAPSHOT (Base Currency: ${cur}) ===`,
+    `=== AYNLYTICS LIVE VAULT SNAPSHOT FOR ${profile.displayName.toUpperCase()} (Base Currency: ${cur}) ===`,
+    `- User Profile: ${profile.avatarEmoji} ${profile.displayName} (${profile.tagline}) | Personal Monthly Savings Goal Target: ${profile.monthlySavingsGoalPct}%`,
     `- Safe-to-Spend: ${formatCurrency(kpis.safeToSpend, cur)}`,
     `- Total Net Worth: ${formatCurrency(kpis.totalNetWorth, cur)} (Liquid Cash: ${formatCurrency(kpis.liquidCash, cur)}, Total Debt: ${formatCurrency(kpis.totalDebt, cur)})`,
-    `- This Month Cashflow: Income ${formatCurrency(kpis.periodIncome, cur)} | Expenses ${formatCurrency(kpis.periodExpenses, cur)} | Net ${formatCurrency(kpis.netCashflow, cur)} | Savings Rate ${kpis.savingsRate.toFixed(1)}%`,
+    `- This Month Cashflow: Income ${formatCurrency(kpis.periodIncome, cur)} | Expenses ${formatCurrency(kpis.periodExpenses, cur)} | Net ${formatCurrency(kpis.netCashflow, cur)} | Actual Savings Rate ${kpis.savingsRate.toFixed(1)}% (vs ${profile.monthlySavingsGoalPct}% target)`,
     `- Daily Burn Rate: ${formatCurrency(kpis.dailyBurnRate, cur)}/day (Projected Month-End Expense: ${formatCurrency(kpis.projectedMonthEndExpense, cur)})`,
     `- Financial Health Score: ${health.score}/100 (Grade ${health.grade}) — ${health.summary}`,
     `  * Pillars: ${health.metrics.map((m) => `${m.label}: ${m.displayValue} (${m.status})`).join(' | ')}`,
@@ -87,6 +131,12 @@ export function buildVaultFinancialContext(vault: VaultData): string {
 export function generateLocalFinancialAdvice(userPrompt: string, vault: VaultData): string {
   const q = userPrompt.toLowerCase();
   const cur = vault.settings.baseCurrency;
+  const profile = getEffectiveProfile(vault);
+  const isConyo = profile.aynieeeTone === 'conyo_bestie';
+  const greeting = isConyo
+    ? `Hey bestie **${profile.displayName}**! Aynieee here—let's check your numbers:`
+    : `Hi **${profile.displayName}**, here is Aynieee's analysis of your vault:`;
+
   const kpis = computeDashboardKPIs(vault, 'this_month');
   const health = computeFinancialHealthScore(vault);
   const categories = computeCategorySpend(vault, 'this_month');
@@ -104,24 +154,27 @@ export function generateLocalFinancialAdvice(userPrompt: string, vault: VaultDat
     const shareSummary = squadBoard.entries
       .map(
         (e) =>
-          `• #${e.rank} ${e.member.name}: ${formatCurrency(e.totalContributed, primarySquad.currency)} (${e.sharePercent.toFixed(1)}% share of pot across ${e.contributionCount} deposits)`
+          `• #${e.rank} **${e.member.name}**: ${formatCurrency(e.totalContributed, primarySquad.currency)} (**${e.sharePercent.toFixed(1)}% share** across ${e.contributionCount} deposits)`
       )
       .join('\n');
 
     const catchUpAdvice =
       leader && second
-        ? `Right now, ${leader.member.name} holds the #1 Top Saver spot by ${formatCurrency(leader.leadOverNext, primarySquad.currency)} (+${leader.shareGapPercent.toFixed(1)}% share lead over ${second.member.name}). For ${second.member.name} to overtake #1 today, they need a deposit of at least ${formatCurrency(leader.leadOverNext + 50, primarySquad.currency)}.`
+        ? isConyo
+          ? `Real talk: **${leader.member.name}** is holding the #1 Top Saver crown right now by **${formatCurrency(leader.leadOverNext, primarySquad.currency)}** (+${leader.shareGapPercent.toFixed(1)}% share lead over ${second.member.name}). Para ma-overtake ni ${second.member.name} ang #1 spot today, mag-drop lang ng at least **${formatCurrency(leader.leadOverNext + 50, primarySquad.currency)}** into the pot!`
+          : `Right now, **${leader.member.name}** holds the #1 Top Saver spot by **${formatCurrency(leader.leadOverNext, primarySquad.currency)}** (+${leader.shareGapPercent.toFixed(1)}% share lead over ${second.member.name}). To overtake #1 today, ${second.member.name} needs a deposit of at least **${formatCurrency(leader.leadOverNext + 50, primarySquad.currency)}**.`
         : 'Add a friend deposit in the Friend Squads tab to start the ownership share leaderboard!';
 
     return [
-      `Here is your live Friend Savings Squad breakdown for **${primarySquad.emoji} ${primarySquad.name}** (Room \`${primarySquad.roomCode}\`):`,
+      greeting,
       '',
+      `Here is the live leaderboard for **${primarySquad.emoji} ${primarySquad.name}** (Room \`${primarySquad.roomCode}\`):`,
       `**Pot Progress**: ${formatCurrency(squadBoard.totalSaved, primarySquad.currency)} / ${formatCurrency(squadBoard.targetAmount, primarySquad.currency)} (${squadBoard.progressPercent.toFixed(1)}% funded — ${formatCurrency(squadBoard.remainingAmount, primarySquad.currency)} remaining)`,
       '',
       '**Ownership Shares**:',
       shareSummary,
       '',
-      `**Coach Strategy**: ${catchUpAdvice} With your current Safe-to-Spend at ${formatCurrency(kpis.safeToSpend, cur)}, you can comfortably allocate ${formatCurrency(Math.max(100, Math.round(kpis.netCashflow * 0.25)), cur)} this week without straining upcoming bills.`,
+      `**Aynieee's Strategy**: ${catchUpAdvice} Since your Safe-to-Spend is **${formatCurrency(kpis.safeToSpend, cur)}**, you can easily move **${formatCurrency(Math.max(100, Math.round(kpis.netCashflow * 0.25)), cur)}** this week without stressing your bills.`,
     ].join('\n');
   }
 
@@ -131,14 +184,15 @@ export function generateLocalFinancialAdvice(userPrompt: string, vault: VaultDat
       (a) => !a.archived && (a.type === 'credit' || a.type === 'loan' || a.openingBalance < 0)
     );
     return [
-      `**Debt Payoff Strategy Analysis (Total Debt: ${formatCurrency(kpis.totalDebt, cur)})**:`,
+      greeting,
       '',
-      `1. **Avalanche Method (Mathematically Fastest & Cheapest)**: Direct all extra cash toward your highest-APR balance first (such as credit cards at ~19–22% APR) while paying minimums on lower-rate loans. This saves the most in total interest.`,
-      `2. **Snowball Method (Fastest Behavioral Momentum)**: Knock out the smallest balance first to eliminate an entire monthly minimum payment quickly, then roll that payment into the next debt.`,
+      `**Debt Payoff Gameplan (Total Debt: ${formatCurrency(kpis.totalDebt, cur)})**:`,
+      `1. **Avalanche Method (Cheapest & Fastest Mathematically)**: Put all extra bayad toward your highest-APR debt first (like credit cards at ~19–22% APR) while paying minimums on lower-rate loans.`,
+      `2. **Snowball Method (Fastest Quick Win)**: Clear the smallest balance first so you delete a monthly bill fast, then roll that payment into the next balance.`,
       '',
-      `**Action Plan for Your Vault**:`,
-      `• Your current monthly net cashflow is **${formatCurrency(kpis.netCashflow, cur)}** (${kpis.savingsRate.toFixed(1)}% savings rate) and you have **${debtAccounts.length} liability account(s)** tracked.`,
-      `• Putting just **${formatCurrency(Math.max(150, Math.round(Math.max(0, kpis.netCashflow) * 0.3)), cur)}/month** in extra payments via the **Avalanche** method in the *Goals & Debt* tab will shave months off your payoff timeline and boost your Financial Health Score (currently **${health.score}/100**).`,
+      `**Aynieee's Verdict for ${profile.displayName}**:`,
+      `• Your monthly net cashflow is **${formatCurrency(kpis.netCashflow, cur)}** (**${kpis.savingsRate.toFixed(1)}%** savings rate vs your **${profile.monthlySavingsGoalPct}%** target) across **${debtAccounts.length} liability account(s)**.`,
+      `• Allocate **${formatCurrency(Math.max(150, Math.round(Math.max(0, kpis.netCashflow) * 0.3)), cur)}/month** extra into the **Avalanche** simulator in *Goals & Debt* to save the most interest and push your Health Score above **${health.score}/100**.`,
     ].join('\n');
   }
 
@@ -152,16 +206,17 @@ export function generateLocalFinancialAdvice(userPrompt: string, vault: VaultDat
     const trimTarget = topWants.reduce((acc, c) => acc + Math.round(c.spent * 0.2), 0);
 
     return [
-      `**30-Day Personal Finance & Savings Gameplan (Health Score: ${health.score}/100 • Grade ${health.grade})**:`,
+      greeting,
       '',
-      `• **Current Cashflow Position**: You earned **${formatCurrency(kpis.periodIncome, cur)}** and spent **${formatCurrency(kpis.periodExpenses, cur)}** this month, leaving **${formatCurrency(kpis.netCashflow, cur)}** net cashflow (**${kpis.savingsRate.toFixed(1)}% savings rate**) and **${formatCurrency(kpis.safeToSpend, cur)} Safe-to-Spend**.`,
+      `**Aynieee's 30-Day Money & Savings Plan (Health Score: ${health.score}/100 • Grade ${health.grade})**:`,
+      `• **Cashflow Snapshot**: You brought in **${formatCurrency(kpis.periodIncome, cur)}** and spent **${formatCurrency(kpis.periodExpenses, cur)}** this month, leaving **${formatCurrency(kpis.netCashflow, cur)}** net cashflow (**${kpis.savingsRate.toFixed(1)}% savings rate** vs your **${profile.monthlySavingsGoalPct}%** goal) and **${formatCurrency(kpis.safeToSpend, cur)} Safe-to-Spend**.`,
       over.length > 0
-        ? `• **Watch Out — Over-Budget Categories**: ${over.map((c) => `**${c.categoryName}** (${formatCurrency(c.spent, cur)} spent vs ${formatCurrency(c.effectiveBudget, cur)} limit)`).join(', ')}. Pause non-essential purchases here for the rest of the month.`
-        : `• **Budget Discipline**: All budgeted categories are within limit so far—strong control!`,
+        ? `• **Overspending Alert**: ${over.map((c) => `**${c.categoryName}** (${formatCurrency(c.spent, cur)} spent vs ${formatCurrency(c.effectiveBudget, cur)} budget)`).join(', ')}. ${isConyo ? 'Chill muna sa category na ’to for the rest of the month!' : 'Pause non-essential spend here for the rest of the month.'}`
+        : `• **Budget Check**: Zero categories over budget right now—super disciplined!`,
       topWants.length > 0
-        ? `• **Quick 20% Discretionary Trim**: Trimming 20% from your top Wants (${topWants.map((c) => `${c.categoryName}: ${formatCurrency(c.spent, cur)}`).join(', ')}) frees up **${formatCurrency(trimTarget, cur)}/month** (${formatCurrency(trimTarget * 12, cur)}/year).`
+        ? `• **Easy 20% Wants Trim**: Cutting just 20% from (${topWants.map((c) => `${c.categoryName}: ${formatCurrency(c.spent, cur)}`).join(', ')}) saves you an extra **${formatCurrency(trimTarget, cur)}/month** (${formatCurrency(trimTarget * 12, cur)}/year).`
         : '',
-      `• **Next Move**: Transfer **${formatCurrency(Math.max(150, trimTarget), cur)}** right on payday into your High-Yield Savings or **${primarySquad?.name ?? 'Friend Savings Squad'}** pot so it compounds before you can spend it.`,
+      `• **Aynieee's Next Move**: Auto-transfer **${formatCurrency(Math.max(150, trimTarget), cur)}** into your **${primarySquad?.name ?? 'Friend Savings Squad'}** pot so your ownership share stays #1!`,
     ]
       .filter(Boolean)
       .join('\n');
@@ -171,17 +226,20 @@ export function generateLocalFinancialAdvice(userPrompt: string, vault: VaultDat
   if (/emergency|runway|liquid|safety net/i.test(q)) {
     const runwayPillar = health.metrics.find((m) => m.id === 'emergency_runway');
     return [
-      `**Emergency Fund & Runway Assessment**:`,
+      greeting,
       '',
-      `• **Liquid Cash Available**: **${formatCurrency(kpis.liquidCash, cur)}** across your checking, savings, and cash accounts.`,
-      `• **Current Runway**: **${runwayPillar?.displayValue ?? 'N/A'}** (${runwayPillar?.explanation ?? 'Target at least 6 months of essential expenses'}).`,
-      `• **Recommendation**: Keep 3–6 months of core living expenses in a liquid High-Yield Savings account (~4.5% APY), and direct surplus cash above 6 months into long-term investments or your shared Friend Savings Squad goals.`,
+      `**Emergency Fund & Runway Checkup**:`,
+      `• **Liquid Cash Ready**: **${formatCurrency(kpis.liquidCash, cur)}** across checking, savings, and cash wallets.`,
+      `• **Emergency Runway**: **${runwayPillar?.displayValue ?? 'N/A'}** (${runwayPillar?.explanation ?? 'Target 6+ months of core expenses'}).`,
+      `• **Aynieee's Tip**: Keep 6 months of essential expenses in a high-yield savings account, and deploy any extra cash into your Friend Savings Squad or investment goals.`,
     ].join('\n');
   }
 
-  // 5. Fallback: combine askVault deterministic lookup + actionable financial coaching tip
+  // 5. Fallback
   const vaultAns = askVault(userPrompt, vault);
   const topLines = [
+    greeting,
+    '',
     `**${vaultAns.headline}** (${vaultAns.periodLabel})`,
     vaultAns.summary,
   ];
@@ -195,7 +253,7 @@ export function generateLocalFinancialAdvice(userPrompt: string, vault: VaultDat
   }
   topLines.push(
     '',
-    `**Financial Coach Tip**: Your overall Financial Health Score is **${health.score}/100 (${health.grade})** with a **${kpis.savingsRate.toFixed(1)}% savings rate** and **${formatCurrency(kpis.safeToSpend, cur)} Safe-to-Spend**. Keep fixed costs below 50% of income and automate transfers on payday to stay ahead.`
+    `**Aynieee's Note for ${profile.displayName}**: Your Financial Health Score is **${health.score}/100 (${health.grade})** with a **${kpis.savingsRate.toFixed(1)}% savings rate** (target: **${profile.monthlySavingsGoalPct}%**) and **${formatCurrency(kpis.safeToSpend, cur)} Safe-to-Spend**.`
   );
   return topLines.join('\n');
 }
@@ -230,14 +288,20 @@ export async function sendGroqAdvisorMessage(params: {
     return {
       reply: generateLocalFinancialAdvice(lastUserMsg, vault),
       source: 'local-offline',
-      modelUsed: 'AYNLYTICS Local Engine (Offline)',
+      modelUsed: 'Aynieee Local Engine (Offline)',
     };
   }
 
+  const profile = getEffectiveProfile(vault);
+  const toneOption =
+    AYNIEEE_TONE_OPTIONS.find((t) => t.id === profile.aynieeeTone) ??
+    AYNIEEE_TONE_OPTIONS[0];
+
   const systemPrompt = [
-    'You are the AYNLYTICS 2.0 AI Financial Coach, powered by Groq.',
-    'Give practical, encouraging, numbers-backed personal finance and expense-tracking advice.',
-    'Keep answers concise (3-5 short bullet points or sections), cite exact numbers from the user’s live vault snapshot below, and suggest 1 concrete next action they can take today.',
+    `Your name is **Aynieee**, the personal AI Financial Bestie & Coach inside AYNLYTICS 2.0 (powered by Groq).`,
+    `You are advising **${profile.displayName}** (${profile.avatarEmoji} ${profile.tagline}).`,
+    toneOption.systemInstruction,
+    'Keep answers concise (3-5 short bullet points or sections), cite exact numbers in the user’s active base currency from the live vault snapshot below, and end with 1 concrete next action they can take today.',
     '',
     buildVaultFinancialContext(vault),
   ].join('\n');
@@ -252,7 +316,6 @@ export async function sendGroqAdvisorMessage(params: {
 
   const cleanKey = (apiKey || '').trim();
 
-  // Path A: Direct Groq API call when user has provided a gsk_ key
   if (cleanKey.length > 10) {
     try {
       const groqRes = await fetchImpl('https://api.groq.com/openai/v1/chat/completions', {
@@ -286,20 +349,19 @@ export async function sendGroqAdvisorMessage(params: {
       return {
         reply: generateLocalFinancialAdvice(lastUserMsg, vault),
         source: 'local-offline',
-        modelUsed: 'AYNLYTICS Local Engine',
+        modelUsed: 'Aynieee Local Engine',
         errorHint: data?.error?.message || `Groq API returned HTTP ${groqRes.status}`,
       };
     } catch (err) {
       return {
         reply: generateLocalFinancialAdvice(lastUserMsg, vault),
         source: 'local-offline',
-        modelUsed: 'AYNLYTICS Local Engine',
+        modelUsed: 'Aynieee Local Engine',
         errorHint: err instanceof Error ? err.message : 'Network error calling Groq',
       };
     }
   }
 
-  // Path B: Call Vercel serverless proxy (/api/groq-chat or https://vaultledger-zeta.vercel.app/api/groq-chat)
   const proxyEndpoints =
     typeof window !== 'undefined' && window.location?.protocol?.startsWith('http')
       ? ['/api/groq-chat']
@@ -334,7 +396,7 @@ export async function sendGroqAdvisorMessage(params: {
   return {
     reply: generateLocalFinancialAdvice(lastUserMsg, vault),
     source: 'local-offline',
-    modelUsed: 'AYNLYTICS Smart Advisor (Connect Groq Key for Live Llama 3.3)',
+    modelUsed: 'Aynieee Smart Advisor (Offline / Local)',
     errorHint: 'GROQ_KEY_OPTIONAL',
   };
 }

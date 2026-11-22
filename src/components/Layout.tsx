@@ -29,7 +29,9 @@ import {
   Bot,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
-import type { NavSection, TimeRange } from '../types/finance';
+import { CURRENCY_METADATA, SUPPORTED_CURRENCIES } from '../core/currency';
+import { getEffectiveProfile } from '../core/aiCoach';
+import type { CurrencyCode, NavSection, TimeRange } from '../types/finance';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -56,6 +58,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const redo = useFinanceStore((s) => s.redo);
   const openQuickAdd = useFinanceStore((s) => s.openQuickAdd);
   const setCommandPaletteOpen = useFinanceStore((s) => s.setCommandPaletteOpen);
+  const setProfileModalOpen = useFinanceStore((s) => s.setProfileModalOpen);
+  const setBaseCurrency = useFinanceStore((s) => s.setBaseCurrency);
   const openImportExport = useFinanceStore((s) => s.openImportExport);
   const toggleTheme = useFinanceStore((s) => s.toggleTheme);
   const togglePrivacyMask = useFinanceStore((s) => s.togglePrivacyMask);
@@ -75,6 +79,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const privacyMask = data.settings.privacyMask;
   const isDemo = data.settings.isDemoData;
   const hasPasscode = Boolean(data.settings.passcodeHash);
+  const profile = getEffectiveProfile(data);
+  const baseCurrency = data.settings.baseCurrency;
 
   const navItems: Array<{
     id: NavSection;
@@ -93,9 +99,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     },
     {
       id: 'coach',
-      label: 'Groq AI Coach',
+      label: 'Ask Aynieee AI',
       icon: Bot,
-      badge: 'Groq',
+      badge: 'AI',
       badgeTone: 'primary',
     },
     {
@@ -500,6 +506,35 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 ))}
               </select>
             )}
+
+            {/* Instant 1-Click Base Currency Switcher */}
+            <select
+              value={baseCurrency}
+              onChange={(e) => setBaseCurrency(e.target.value as CurrencyCode)}
+              aria-label="Active currency"
+              title="Switch active currency across vault & Friend Squads"
+              className="tactile-input px-2.5 py-1.5 text-xs font-extrabold cursor-pointer"
+            >
+              {SUPPORTED_CURRENCIES.map((code) => (
+                <option key={code} value={code}>
+                  {CURRENCY_METADATA[code].symbol} {code}
+                </option>
+              ))}
+            </select>
+
+            {/* User Profile & Personalization Pill */}
+            <button
+              type="button"
+              onClick={() => setProfileModalOpen(true)}
+              aria-label="Open User Profile and Personalization Settings"
+              title="Personalize Profile, Currency & Aynieee Vibe"
+              className="tactile-btn inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer"
+            >
+              <span className="text-sm leading-none">{profile.avatarEmoji}</span>
+              <span className="hidden md:inline max-w-[110px] truncate">
+                {profile.displayName.split(' ')[0]}
+              </span>
+            </button>
 
             {/* Tactile Ask Vault / Command Palette Pill */}
             <button

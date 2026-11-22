@@ -18,6 +18,7 @@ import { DownloadDesktopView } from './components/DownloadDesktopView';
 import { QuickAddModal } from './components/QuickAddModal';
 import { CommandPalette } from './components/CommandPalette';
 import { ImportExportModal } from './components/ImportExportModal';
+import { ProfileSettingsModal } from './components/ProfileSettingsModal';
 import { VaultLockScreen } from './components/VaultLockScreen';
 
 function isTypingElement(target: EventTarget | null): boolean {
@@ -36,6 +37,7 @@ export default function App() {
   const locked = useFinanceStore((s) => s.locked);
   const data = useFinanceStore((s) => s.data);
   const theme = data.settings.theme;
+  const clayAccent = data.settings.profile?.clayAccent || '#FDBCB4';
   const activeNav = useFinanceStore((s) => s.activeNav);
 
   const initialize = useFinanceStore((s) => s.initialize);
@@ -66,7 +68,8 @@ export default function App() {
       document.head.appendChild(metaTheme);
     }
     metaTheme.content = themeColor;
-  }, [theme]);
+    root.style.setProperty('--accent-primary', clayAccent);
+  }, [theme, clayAccent]);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -219,6 +222,7 @@ export default function App() {
       <QuickAddModal />
       <CommandPalette />
       <ImportExportModal />
+      <ProfileSettingsModal />
 
       {/* Floating Groq AI Financial Coach Launcher */}
       <FloatingAiCoachWidget />

@@ -148,6 +148,17 @@ export interface BankImportPreset {
   invertAmount: boolean;
 }
 
+export type AynieeeTone = 'conyo_bestie' | 'gentle_coach' | 'strict_cfo';
+
+export interface UserProfile {
+  displayName: string;
+  tagline: string;
+  avatarEmoji: string;
+  clayAccent: string; // '#FDBCB4' | '#FFD1DC' | '#98FF98' | '#ADD8E6' | '#E6E6FA' | '#B5EAD7'
+  monthlySavingsGoalPct: number; // e.g. 25
+  aynieeeTone: AynieeeTone;
+}
+
 export interface VaultSettings {
   baseCurrency: CurrencyCode;
   exchangeRates: Record<CurrencyCode, number>; // value of 1 baseCurrency in target currency
@@ -162,6 +173,7 @@ export interface VaultSettings {
   budgetRolloverAdjustments: Record<string, number>; // categoryId -> rollover carry-in amount
   groqApiKey?: string;
   groqModel?: string;
+  profile?: UserProfile;
 }
 
 export interface AiChatMessage {

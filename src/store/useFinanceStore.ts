@@ -17,11 +17,13 @@ import type {
   SquadMember,
   TimeRange,
   Transaction,
+  UserProfile,
   VaultData,
   VaultSettings,
 } from '../types/finance';
 import { hashPasscode, verifyPasscode } from '../core/crypto';
 import {
+  convertCurrency,
   getDefaultRatesForBase,
   normalizeVaultData,
   rebaseExchangeRates,
@@ -71,6 +73,7 @@ export interface FinanceStoreState {
   commandPaletteOpen: boolean;
   importExportOpen: boolean;
   importExportTab: ImportExportTab;
+  profileModalOpen: boolean;
   canUndo: boolean;
   canRedo: boolean;
   toast: ToastMessage | null;
@@ -84,6 +87,7 @@ export interface FinanceStoreState {
   openQuickAdd: (editingTransactionId?: string | null) => void;
   closeQuickAdd: () => void;
   setCommandPaletteOpen: (open: boolean) => void;
+  setProfileModalOpen: (open: boolean) => void;
   openImportExport: (tab?: ImportExportTab) => void;
   closeImportExport: () => void;
   showToast: (
@@ -162,6 +166,7 @@ export interface FinanceStoreState {
   deleteImportPreset: (id: string) => void;
 
   updateSettings: (patch: Partial<VaultSettings>) => void;
+  updateUserProfile: (patch: Partial<UserProfile>) => void;
   setBaseCurrency: (nextCurrency: CurrencyCode) => void;
   updateExchangeRate: (code: CurrencyCode, rate: number) => void;
   resetExchangeRates: () => void;
@@ -337,6 +342,7 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
     commandPaletteOpen: false,
     importExportOpen: false,
     importExportTab: 'import',
+    profileModalOpen: false,
     canUndo: false,
     canRedo: false,
     toast: null,
@@ -470,6 +476,7 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
       }),
 
     setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+    setProfileModalOpen: (open) => set({ profileModalOpen: open }),
 
     openImportExport: (tab = 'import') =>
       set({
@@ -1297,6 +1304,44 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
       }));
     },
 
+    updateUserProfile: (patch) => {
+      commitData((prev) => {
+        const currentProfile: UserProfile = {
+          displayName: prev.settings.profile?.displayName || 'Ayn Lorebelle',
+          tagline: prev.settings.profile?.tagline || 'Smart Saver & Co-Op Squad Leader',
+          avatarEmoji: prev.settings.profile?.avatarEmoji || '🌸',
+          clayAccent: prev.settings.profile?.clayAccent || '#FDBCB4',
+          monthlySavingsGoalPct: prev.settings.profile?.monthlySavingsGoalPct ?? 25,
+          aynieeeTone: prev.settings.profile?.aynieeeTone || 'conyo_bestie',
+        };
+        const nextProfile: UserProfile = {
+          ...currentProfile,
+          ...patch,
+        };
+        const nextName = nextProfile.displayName.trim() || 'Ayn Lorebelle';
+        const nextInitials = getInitials(nextName);
+
+        // Sync owner's display name inside Friend Savings Squads so leaderboard matches profile
+        const nextSquads = (prev.savingsSquads ?? []).map((pot) => ({
+          ...pot,
+          members: pot.members.map((m) =>
+            m.role === 'owner'
+              ? { ...m, name: nextName, avatarInitials: nextInitials }
+              : m
+          ),
+        }));
+
+        return {
+          ...prev,
+          savingsSquads: nextSquads,
+          settings: {
+            ...prev.settings,
+            profile: nextProfile,
+          },
+        };
+      });
+    },
+
     setBaseCurrency: (nextCurrency) => {
       const prevSettings = get().data.settings;
       if (
@@ -1306,20 +1351,45 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
         return;
       }
       const nowIso = new Date().toISOString();
-      commitData((prev) => ({
-        ...prev,
-        settings: {
-          ...prev.settings,
-          baseCurrency: nextCurrency,
-          exchangeRates: rebaseExchangeRates(
-            prev.settings.exchangeRates,
-            prev.settings.baseCurrency,
-            nextCurrency,
-          ),
-          exchangeRatesUpdatedAt: nowIso,
-        },
-      }));
-      get().showToast(`Base currency switched to ${nextCurrency} — rates rebased`, 'success');
+      commitData((prev) => {
+        const fromBase = prev.settings.baseCurrency;
+        const nextRates = rebaseExchangeRates(
+          prev.settings.exchangeRates,
+          fromBase,
+          nextCurrency,
+        );
+
+        // Smoothly convert Friend Savings Squad pots from previous baseCurrency into nextCurrency
+        const convertedSquads = (prev.savingsSquads ?? []).map((pot) => {
+          const potFrom = pot.currency || fromBase;
+          if (potFrom === nextCurrency) return pot;
+          return {
+            ...pot,
+            currency: nextCurrency,
+            targetAmount: roundMoney(
+              convertCurrency(pot.targetAmount, potFrom, nextCurrency, prev.settings)
+            ),
+            contributions: pot.contributions.map((c) => ({
+              ...c,
+              amount: roundMoney(
+                convertCurrency(c.amount, potFrom, nextCurrency, prev.settings)
+              ),
+            })),
+          };
+        });
+
+        return {
+          ...prev,
+          savingsSquads: convertedSquads,
+          settings: {
+            ...prev.settings,
+            baseCurrency: nextCurrency,
+            exchangeRates: nextRates,
+            exchangeRatesUpdatedAt: nowIso,
+          },
+        };
+      });
+      get().showToast(`Active currency switched to ${nextCurrency} — vault & Friend Squads converted!`, 'success');
     },
 
     updateExchangeRate: (code, rate) => {

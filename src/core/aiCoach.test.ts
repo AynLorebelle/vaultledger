@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   AI_COACH_STARTER_PROMPTS,
+  AYNIEEE_TONE_OPTIONS,
   GROQ_MODELS,
   buildVaultFinancialContext,
   generateLocalFinancialAdvice,
@@ -8,16 +9,18 @@ import {
 } from './aiCoach';
 import { createSampleVault } from './seedData';
 
-describe('aiCoach: Groq Online AI Financial Advisor & Offline Fallback', () => {
-  it('exports Groq models and starter financial coaching prompts', () => {
+describe('aiCoach: Aynieee Groq Online AI Financial Bestie & Offline Fallback', () => {
+  it('exports Groq models, Aynieee personality tones, and starter prompts', () => {
     expect(GROQ_MODELS.length).toBeGreaterThanOrEqual(2);
     expect(GROQ_MODELS[0].id).toBe('openai/gpt-oss-120b');
+    expect(AYNIEEE_TONE_OPTIONS.map((t) => t.id)).toContain('conyo_bestie');
     expect(AI_COACH_STARTER_PROMPTS.length).toBeGreaterThanOrEqual(5);
   });
 
-  it('builds a rich financial context summary from the user vault', () => {
+  it('builds a personalized financial context summary including user profile for Aynieee', () => {
     const vault = createSampleVault();
     const ctx = buildVaultFinancialContext(vault);
+    expect(ctx).toContain('Ayn Lorebelle');
     expect(ctx).toContain('Safe-to-Spend');
     expect(ctx).toContain('Financial Health Score');
     expect(ctx).toContain('Tokyo Besties Trip 2027');

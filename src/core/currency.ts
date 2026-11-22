@@ -184,6 +184,22 @@ export function normalizeVaultData(vault: VaultData): VaultData {
       ? createDefaultSavingsSquads(baseCurrency)
       : [];
 
+  const defaultProfile = {
+    displayName: 'Ayn Lorebelle',
+    tagline: 'Smart Saver & Co-Op Squad Leader',
+    avatarEmoji: '🌸',
+    clayAccent: '#FDBCB4',
+    monthlySavingsGoalPct: 25,
+    aynieeeTone: 'conyo_bestie' as const,
+  };
+
+  const profile = existingSettings?.profile
+    ? {
+        ...defaultProfile,
+        ...existingSettings.profile,
+      }
+    : defaultProfile;
+
   return {
     ...vault,
     forecastMilestones,
@@ -193,6 +209,7 @@ export function normalizeVaultData(vault: VaultData): VaultData {
       baseCurrency,
       exchangeRates: normalizedRates,
       exchangeRatesUpdatedAt,
+      profile,
     },
   };
 }
