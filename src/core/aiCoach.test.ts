@@ -11,7 +11,7 @@ import { createSampleVault } from './seedData';
 describe('aiCoach: Groq Online AI Financial Advisor & Offline Fallback', () => {
   it('exports Groq models and starter financial coaching prompts', () => {
     expect(GROQ_MODELS.length).toBeGreaterThanOrEqual(2);
-    expect(GROQ_MODELS[0].id).toBe('llama-3.3-70b-versatile');
+    expect(GROQ_MODELS[0].id).toBe('openai/gpt-oss-120b');
     expect(AI_COACH_STARTER_PROMPTS.length).toBeGreaterThanOrEqual(5);
   });
 
@@ -43,14 +43,14 @@ describe('aiCoach: Groq Online AI Financial Advisor & Offline Fallback', () => {
       messages: [{ id: 'm1', role: 'user', content: 'How can I save more this month?', createdAt: '2026-11-22T10:00:00Z' }],
       vault,
       apiKey: 'gsk_test_mock_key_1234567890',
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       isOnline: true,
       fetchImpl: mockFetch as unknown as typeof fetch,
     });
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(res.source).toBe('groq-cloud');
-    expect(res.modelUsed).toBe('llama-3.3-70b-versatile');
+    expect(res.modelUsed).toBe('openai/gpt-oss-120b');
     expect(res.reply).toContain('44.1% savings rate');
   });
 

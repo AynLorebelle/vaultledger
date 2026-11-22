@@ -17,19 +17,19 @@ export interface GroqModelOption {
 
 export const GROQ_MODELS: GroqModelOption[] = [
   {
-    id: 'llama-3.3-70b-versatile',
-    label: 'Llama 3.3 70B Versatile',
+    id: 'openai/gpt-oss-120b',
+    label: 'Groq GPT-OSS 120B',
     badge: 'Recommended • Deep Financial Advice',
   },
   {
-    id: 'llama-3.1-8b-instant',
-    label: 'Llama 3.1 8B Instant',
+    id: 'openai/gpt-oss-20b',
+    label: 'Groq GPT-OSS 20B',
     badge: 'Ultra-Fast • Instant Answers',
   },
   {
-    id: 'gemma2-9b-it',
-    label: 'Gemma 2 9B IT',
-    badge: 'Compact • Structured Tips',
+    id: 'qwen/qwen3.8-27b',
+    label: 'Groq Qwen 3.8 27B',
+    badge: 'Analytical • Structured Tips',
   },
 ];
 
@@ -217,7 +217,7 @@ export async function sendGroqAdvisorMessage(params: {
     messages,
     vault,
     apiKey,
-    model = 'llama-3.3-70b-versatile',
+    model = 'openai/gpt-oss-120b',
     isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true,
     fetchImpl = typeof fetch !== 'undefined' ? fetch : undefined,
   } = params;

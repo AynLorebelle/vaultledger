@@ -70,10 +70,10 @@ const INITIAL_WELCOME_MESSAGE: AiChatMessage = {
   id: 'msg-welcome',
   role: 'assistant',
   content:
-    'Hey! I am your **AYNLYTICS Groq AI Financial Coach**. When you are online, I use **Groq Llama 3.3 70B** with your live vault numbers (Safe-to-Spend, Budgets, Financial Health Score, and Friend Savings Squad shares) to give personalized money advice—and if you go offline, I switch automatically to my local financial engine.\n\nAsk me anything below or tap a quick coaching prompt!',
+    'Hey! I am your **AYNLYTICS Groq AI Financial Coach**. When you are online, I use **Groq Cloud AI (GPT-OSS 120B / Qwen 3.8)** with your live vault numbers (Safe-to-Spend, Budgets, Financial Health Score, and Friend Savings Squad shares) to give personalized money advice—and if you go offline, I switch automatically to my local financial engine.\n\nAsk me anything below or tap a quick coaching prompt!',
   createdAt: new Date().toISOString(),
   source: 'groq-cloud',
-  modelUsed: 'llama-3.3-70b-versatile',
+  modelUsed: 'openai/gpt-oss-120b',
 };
 
 export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: () => void }> = ({

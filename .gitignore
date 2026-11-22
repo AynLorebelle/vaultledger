@@ -12,6 +12,7 @@ build/*.png
 # Local env & secrets
 .env
 .env.*
+!.env.example
 Personal_Token.env
 *.local
 
