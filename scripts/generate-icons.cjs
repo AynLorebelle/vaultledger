@@ -14,7 +14,8 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
-const SIZE = 256;
+const PNG_SIZE = 512;
+const ICO_SIZE = 256;
 const BUILD_DIR = path.resolve(__dirname, '../build');
 const PNG_PATH = path.join(BUILD_DIR, 'icon.png');
 const ICO_PATH = path.join(BUILD_DIR, 'icon.ico');
@@ -142,10 +143,11 @@ function sdPolygon(px, py, poly) {
 // Rasterizer (256x256 RGBA)
 // ---------------------------------------------------------------------------
 
-function renderIconBitmap() {
+function renderIconBitmap(size = 512) {
   const outerShield = buildShieldPolygon(1.0);
   const innerShield = buildShieldPolygon(0.81);
-  const rgba = Buffer.alloc(SIZE * SIZE * 4);
+  const rgba = Buffer.alloc(size * size * 4);
+  const scaleTo256 = 256 / size;
 
   // Color palette (RGB 0..255)
   const bgTop = [15, 23, 42]; // #0f172a
@@ -160,15 +162,17 @@ function renderIconBitmap() {
   const emeraldMint = [167, 243, 208]; // #a7f3d0
   const emeraldBright = [52, 211, 153]; // #34d399
 
-  for (let y = 0; y < SIZE; y++) {
-    const py = y + 0.5;
-    for (let x = 0; x < SIZE; x++) {
-      const px = x + 0.5;
+  const aa = 0.75 * scaleTo256;
+
+  for (let y = 0; y < size; y++) {
+    const py = (y + 0.5) * scaleTo256;
+    for (let x = 0; x < size; x++) {
+      const px = (x + 0.5) * scaleTo256;
       const dst = [0, 0, 0, 0];
 
       // 1. Obsidian rounded icon plate (20..492 in 512 space => 10..246 in 256 space)
       const plateDist = sdRoundedBox(px, py, 128, 128, 118, 118, 54);
-      const plateAlpha = 1 - smoothstep(-0.75, 0.75, plateDist);
+      const plateAlpha = 1 - smoothstep(-aa, aa, plateDist);
 
       if (plateAlpha > 0) {
         const diagT = clamp(((px - 32) * 0.45 + (py - 16) * 0.85) / 224, 0, 1);
@@ -185,13 +189,13 @@ function renderIconBitmap() {
 
         // Subtle obsidian slate border ring
         const rimDist = Math.abs(plateDist + 2.5) - 1.25;
-        const rimAlpha = (1 - smoothstep(-0.6, 0.6, rimDist)) * plateAlpha;
+        const rimAlpha = (1 - smoothstep(-aa, aa, rimDist)) * plateAlpha;
         blendOver(dst, rimColor, rimAlpha);
       }
 
       // 2. Geometric vault shield fill & emerald border
       const shieldDist = sdPolygon(px, py, outerShield);
-      const shieldFillAlpha = 1 - smoothstep(-0.75, 0.75, shieldDist);
+      const shieldFillAlpha = 1 - smoothstep(-aa, aa, shieldDist);
       if (shieldFillAlpha > 0) {
         const fillT = clamp((py - 42) / 172, 0, 1);
         const fillCol = mixColor(shieldFillTop, shieldFillBot, fillT);
@@ -200,14 +204,14 @@ function renderIconBitmap() {
 
       // Inner subtle vault frame
       const innerDist = Math.abs(sdPolygon(px, py, innerShield)) - 1.0;
-      const innerAlpha = (1 - smoothstep(-0.6, 0.6, innerDist)) * 0.28;
+      const innerAlpha = (1 - smoothstep(-aa, aa, innerDist)) * 0.28;
       if (innerAlpha > 0) {
         blendOver(dst, emeraldMid, innerAlpha);
       }
 
       // Outer shield stroke (half-width 4.5px => 9px stroke)
       const strokeDist = Math.abs(shieldDist) - 4.5;
-      const strokeAlpha = 1 - smoothstep(-0.75, 0.75, strokeDist);
+      const strokeAlpha = 1 - smoothstep(-aa, aa, strokeDist);
       if (strokeAlpha > 0) {
         const st = clamp(((px - 56) * 0.45 + (py - 36) * 0.75) / 180, 0, 1);
         const strokeCol =
@@ -219,7 +223,7 @@ function renderIconBitmap() {
 
       // 3. Vault crest accent dot at (128, 77), radius 5
       const dotDist = Math.hypot(px - 128, py - 77) - 5.2;
-      const dotAlpha = 1 - smoothstep(-0.7, 0.7, dotDist);
+      const dotAlpha = 1 - smoothstep(-aa, aa, dotDist);
       if (dotAlpha > 0) {
         blendOver(dst, emeraldBright, dotAlpha);
       }
@@ -227,7 +231,7 @@ function renderIconBitmap() {
       // 4. Three rising ledger bars
       // Bar 1: x 89..108 (cx=98.5, hw=9.5), y 132..168 (cy=150, hh=18)
       const b1Dist = sdRoundedBox(px, py, 98.5, 150, 9.5, 18, 4.5);
-      const b1Alpha = 1 - smoothstep(-0.7, 0.7, b1Dist);
+      const b1Alpha = 1 - smoothstep(-aa, aa, b1Dist);
       if (b1Alpha > 0) {
         const bt = clamp((py - 132) / 36, 0, 1);
         blendOver(dst, mixColor(emeraldBright, emeraldDark, bt), b1Alpha);
@@ -235,7 +239,7 @@ function renderIconBitmap() {
 
       // Bar 2: x 118.5..137.5 (cx=128, hw=9.5), y 112..168 (cy=140, hh=28)
       const b2Dist = sdRoundedBox(px, py, 128, 140, 9.5, 28, 4.5);
-      const b2Alpha = 1 - smoothstep(-0.7, 0.7, b2Dist);
+      const b2Alpha = 1 - smoothstep(-aa, aa, b2Dist);
       if (b2Alpha > 0) {
         const bt = clamp((py - 112) / 56, 0, 1);
         blendOver(dst, mixColor(emeraldLight, emeraldMid, bt), b2Alpha);
@@ -243,7 +247,7 @@ function renderIconBitmap() {
 
       // Bar 3: x 148..167 (cx=157.5, hw=9.5), y 91..168 (cy=129.5, hh=38.5)
       const b3Dist = sdRoundedBox(px, py, 157.5, 129.5, 9.5, 38.5, 4.5);
-      const b3Alpha = 1 - smoothstep(-0.7, 0.7, b3Dist);
+      const b3Alpha = 1 - smoothstep(-aa, aa, b3Dist);
       if (b3Alpha > 0) {
         const bt = clamp((py - 91) / 77, 0, 1);
         blendOver(dst, mixColor(emeraldMint, emeraldMid, bt), b3Alpha);
@@ -251,12 +255,12 @@ function renderIconBitmap() {
 
       // 5. Ledger baseline: x 87..169 (cx=128, hw=41), y 173..178 (cy=175.5, hh=2.5)
       const baseDist = sdRoundedBox(px, py, 128, 175.5, 41, 2.5, 2.5);
-      const baseAlpha = (1 - smoothstep(-0.7, 0.7, baseDist)) * 0.58;
+      const baseAlpha = (1 - smoothstep(-aa, aa, baseDist)) * 0.58;
       if (baseAlpha > 0) {
         blendOver(dst, emeraldMid, baseAlpha);
       }
 
-      const idx = (y * SIZE + x) * 4;
+      const idx = (y * size + x) * 4;
       rgba[idx] = Math.round(clamp(dst[0], 0, 255));
       rgba[idx + 1] = Math.round(clamp(dst[1], 0, 255));
       rgba[idx + 2] = Math.round(clamp(dst[2], 0, 255));
@@ -359,15 +363,18 @@ function encodeIcoFromPng(pngBuffer) {
 function main() {
   fs.mkdirSync(BUILD_DIR, { recursive: true });
 
-  const rgba = renderIconBitmap();
-  const pngBuffer = encodePng(SIZE, SIZE, rgba);
-  const icoBuffer = encodeIcoFromPng(pngBuffer);
+  const rgba512 = renderIconBitmap(PNG_SIZE);
+  const pngBuffer512 = encodePng(PNG_SIZE, PNG_SIZE, rgba512);
 
-  fs.writeFileSync(PNG_PATH, pngBuffer);
+  const rgba256 = renderIconBitmap(ICO_SIZE);
+  const pngBuffer256 = encodePng(ICO_SIZE, ICO_SIZE, rgba256);
+  const icoBuffer = encodeIcoFromPng(pngBuffer256);
+
+  fs.writeFileSync(PNG_PATH, pngBuffer512);
   fs.writeFileSync(ICO_PATH, icoBuffer);
 
   console.log(
-    `[VaultLedger] Generated desktop icons: build/icon.png (${pngBuffer.length} bytes), build/icon.ico (${icoBuffer.length} bytes)`
+    `[VaultLedger] Generated desktop icons: build/icon.png (${PNG_SIZE}x${PNG_SIZE}, ${pngBuffer512.length} bytes), build/icon.ico (${ICO_SIZE}x${ICO_SIZE}, ${icoBuffer.length} bytes)`
   );
 }
 
