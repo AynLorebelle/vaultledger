@@ -15,7 +15,7 @@ describe('savingsSquad: Friend Co-Op Savings Share Leaderboard & Sync', () => {
     const pot: SavingsSquadPot = {
       id: 'squad-tokyo',
       name: 'Tokyo Besties Trip 2027',
-      emoji: '✈️',
+      emoji: 'plane',
       targetAmount: 10000,
       currency: 'USD',
       roomCode: 'AYN-777',

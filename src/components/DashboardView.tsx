@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { motion } from 'motion/react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -13,20 +12,16 @@ import {
 } from 'recharts';
 import {
   ShieldCheck,
-  TrendingUp,
-  TrendingDown,
   Flame,
   Landmark,
   AlertTriangle,
-  Sparkles,
   Info,
-  ArrowRight,
-  ArrowUpRight,
   CalendarClock,
   CheckCircle2,
   ChevronRight,
   Users,
   Trophy,
+  Bot,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import {
@@ -40,9 +35,8 @@ import {
   formatCurrency,
 } from '../core/analytics';
 import { getEffectiveProfile } from '../core/aiCoach';
-import { CURRENCY_METADATA, SUPPORTED_CURRENCIES } from '../core/currency';
 import { computeSquadLeaderboard, createDefaultSavingsSquads } from '../core/savingsSquad';
-import type { CurrencyCode, VaultAnswerDrillAction } from '../types/finance';
+import type { VaultAnswerDrillAction } from '../types/finance';
 import { AskVaultPanel } from './AskVaultPanel';
 import { FinancialHealthCard } from './FinancialHealthCard';
 import { SankeyChart } from './SankeyChart';
@@ -58,8 +52,6 @@ export const DashboardView: React.FC = () => {
   const drillDownSearch = useFinanceStore((s) => s.drillDownSearch);
   const markBillPaidAndLog = useFinanceStore((s) => s.markBillPaidAndLog);
   const setProfileModalOpen = useFinanceStore((s) => s.setProfileModalOpen);
-  const setBaseCurrency = useFinanceStore((s) => s.setBaseCurrency);
-  const openQuickAdd = useFinanceStore((s) => s.openQuickAdd);
 
   const profile = getEffectiveProfile(data);
 
@@ -83,7 +75,7 @@ export const DashboardView: React.FC = () => {
   );
 
   const upcomingBills = useMemo(
-    () => [...recurringSummary.overdue, ...recurringSummary.upcomingSoon].slice(0, 6),
+    () => [...recurringSummary.overdue, ...recurringSummary.upcomingSoon].slice(0, 5),
     [recurringSummary],
   );
 
@@ -118,13 +110,6 @@ export const DashboardView: React.FC = () => {
     }
   };
 
-  const savingsPillStyle: React.CSSProperties =
-    kpis.savingsRate >= 20
-      ? { backgroundColor: 'var(--accent-positive-soft)', color: 'var(--accent-positive)' }
-      : kpis.savingsRate >= 0
-      ? { backgroundColor: 'var(--accent-primary-soft)', color: 'var(--accent-primary-text)' }
-      : { backgroundColor: 'var(--accent-danger-soft)', color: 'var(--accent-danger)' };
-
   const budgetBarColor =
     budgetProgressPct >= 100
       ? 'var(--accent-danger)'
@@ -134,76 +119,37 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Personalized Profile Welcome & Quick Workflow Cockpit Bar */}
-      <section className="card clay-surface-lavender flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5 min-w-0">
-          <button
-            type="button"
-            onClick={() => setProfileModalOpen(true)}
-            aria-label="Edit your profile"
-            className="w-13 h-13 rounded-2xl bg-white/90 border-3 border-white flex items-center justify-center text-2xl shadow-sm shrink-0 cursor-pointer hover:scale-105 transition-transform"
-          >
-            {profile.avatarEmoji}
-          </button>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-lg sm:text-xl font-extrabold text-[#1F2937] tracking-tight truncate">
-                Welcome back, {profile.displayName}!
-              </h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-white/85 text-[11px] font-extrabold text-[#1F2937] tabular-nums">
-                Goal: {profile.monthlySavingsGoalPct}% savings
-              </span>
-            </div>
-            <p className="text-xs font-bold text-[#1F2937]/80 truncate mt-0.5">
-              {profile.tagline} • Active Currency: {CURRENCY_METADATA[currency].name} (
-              {CURRENCY_METADATA[currency].symbol})
-            </p>
-          </div>
+      {/* Calm Header Bar */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-[var(--text-primary)] tracking-tight">
+            Overview for {profile.displayName}
+          </h1>
+          <p className="text-xs font-medium text-[var(--text-secondary)] mt-0.5">
+            {profile.tagline} | Target savings rate: {profile.monthlySavingsGoalPct}%
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {/* Quick Currency Switcher right on Dashboard */}
-          <select
-            value={currency}
-            onChange={(e) => setBaseCurrency(e.target.value as CurrencyCode)}
-            aria-label="Change active currency"
-            className="tactile-input px-3 py-2 text-xs font-extrabold cursor-pointer"
-          >
-            {SUPPORTED_CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {CURRENCY_METADATA[c].symbol} {c}
-              </option>
-            ))}
-          </select>
-
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setProfileModalOpen(true)}
-            className="tactile-btn px-3.5 py-2 text-xs font-extrabold cursor-pointer bg-white/90 text-[#1F2937]"
+            className="tactile-btn px-3.5 py-2 text-xs font-bold cursor-pointer"
           >
-            Personalize Profile
+            Profile &amp; Currency
           </button>
-
           <button
             type="button"
             onClick={() => setActiveNav('coach')}
             className="tactile-btn-primary px-3.5 py-2 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
           >
-            <span>🌸</span>
-            <span>Chat with Aynieee AI</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => openQuickAdd()}
-            className="tactile-btn px-3.5 py-2 text-xs font-extrabold cursor-pointer bg-white/90 text-[#1F2937]"
-          >
-            + Quick Expense
+            <Bot className="w-3.5 h-3.5 text-[#1F2937]" />
+            <span>Ask Aynieee</span>
           </button>
         </div>
-      </section>
+      </header>
 
-      {/* Local Natural-Language Q&A Bar */}
+      {/* Local Q&A Bar */}
       <AskVaultPanel
         vault={data}
         privacyMask={privacyMask}
@@ -212,55 +158,33 @@ export const DashboardView: React.FC = () => {
         onDrillDown={handleAskDrillDown}
       />
 
-      {/* Executive KPI Cockpit */}
+      {/* 4 Clean KPI Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {/* 1. Safe-to-Spend */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="card clay-surface-peach flex flex-col justify-between min-w-0"
-        >
+        {/* 1. Safe to spend */}
+        <div className="card clay-surface-peach flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1F2937]/80">
-              Safe-to-Spend
+            <span className="text-xs font-bold text-[#1F2937]/85">
+              Safe to spend
             </span>
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white/75 text-[#047857] border-2 border-white/80"
-              aria-hidden="true"
-            >
-              <ShieldCheck className="w-4 h-4" />
-            </div>
+            <ShieldCheck className="w-4 h-4 text-[#047857] shrink-0" aria-hidden="true" />
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold tracking-tight tabular-nums text-[#1F2937]">
               <Money amount={kpis.safeToSpend} currency={currency} privacyMask={privacyMask} />
             </div>
-            <p className="text-xs font-medium text-[#1F2937]/85 mt-1.5">
-              Liquid cash{' '}
-              <Money
-                amount={kpis.liquidCash}
-                currency={currency}
-                privacyMask={privacyMask}
-                compact
-                className="font-extrabold text-[#1F2937]"
-              />{' '}
-              minus 30d bills &amp; goals
+            <p className="text-xs font-medium text-[#1F2937]/80 mt-1">
+              After 30-day bills and goals
             </p>
           </div>
-        </motion.div>
+        </div>
 
-        {/* 2. Net Cashflow & Savings Rate */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="card clay-surface-mint flex flex-col justify-between min-w-0"
-        >
+        {/* 2. Net cashflow */}
+        <div className="card clay-surface-mint flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1F2937]/80">
-              Net Cashflow
+            <span className="text-xs font-bold text-[#1F2937]/85">
+              Net cashflow
             </span>
-            <span
-              className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold tabular-nums whitespace-nowrap bg-white/80 text-[#065F46] border border-white/80"
-              style={kpis.savingsRate < 0 ? savingsPillStyle : undefined}
-            >
+            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold tabular-nums bg-white/80 text-[#065F46]">
               {kpis.savingsRate.toFixed(1)}% saved
             </span>
           </div>
@@ -273,59 +197,41 @@ export const DashboardView: React.FC = () => {
                 showSign
               />
             </div>
-            <div className="mt-1.5 flex items-center gap-3 text-xs font-medium text-[#1F2937]/85">
-              <span className="inline-flex items-center gap-1">
-                <TrendingUp
-                  className="w-3.5 h-3.5 text-[#065F46]"
-                  aria-hidden="true"
-                />
-                <Money
-                  amount={kpis.periodIncome}
-                  currency={currency}
-                  privacyMask={privacyMask}
-                  compact
-                  className="text-[#1F2937] font-bold"
-                />
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <TrendingDown
-                  className="w-3.5 h-3.5 text-[#9F1239]"
-                  aria-hidden="true"
-                />
-                <Money
-                  amount={kpis.periodExpenses}
-                  currency={currency}
-                  privacyMask={privacyMask}
-                  compact
-                  className="text-[#1F2937] font-bold"
-                />
-              </span>
-            </div>
+            <p className="text-xs font-medium text-[#1F2937]/80 mt-1 tabular-nums">
+              In{' '}
+              <Money
+                amount={kpis.periodIncome}
+                currency={currency}
+                privacyMask={privacyMask}
+                compact
+                className="font-bold text-[#1F2937]"
+              />{' '}
+              / Out{' '}
+              <Money
+                amount={kpis.periodExpenses}
+                currency={currency}
+                privacyMask={privacyMask}
+                compact
+                className="font-bold text-[#1F2937]"
+              />
+            </p>
           </div>
-        </motion.div>
+        </div>
 
-        {/* 3. Total Expenses & Burn-Rate Forecast */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="card clay-surface-blue flex flex-col justify-between min-w-0"
-        >
+        {/* 3. Monthly expenses */}
+        <div className="card clay-surface-blue flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1F2937]/80">
-              Total Expenses
+            <span className="text-xs font-bold text-[#1F2937]/85">
+              Monthly expenses
             </span>
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white/75 text-[#92400E] border-2 border-white/80"
-              aria-hidden="true"
-            >
-              <Flame className="w-4 h-4" />
-            </div>
+            <Flame className="w-4 h-4 text-[#92400E] shrink-0" aria-hidden="true" />
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold tracking-tight tabular-nums text-[#1F2937]">
               <Money amount={kpis.periodExpenses} currency={currency} privacyMask={privacyMask} />
             </div>
-            <div className="mt-2 space-y-1.5">
-              <div className="progress mt-2" aria-hidden="true">
+            <div className="mt-2">
+              <div className="progress" aria-hidden="true">
                 <span
                   style={{
                     width: `${budgetProgressPct}%`,
@@ -333,211 +239,144 @@ export const DashboardView: React.FC = () => {
                   }}
                 />
               </div>
-              <div className="flex items-center justify-between text-[11px] font-medium text-[#1F2937]/85 tabular-nums">
-                <span>
-                  Burn:{' '}
-                  <Money
-                    amount={kpis.dailyBurnRate}
-                    currency={currency}
-                    privacyMask={privacyMask}
-                    className="font-extrabold text-[#1F2937]"
-                  />
-                  /d
-                </span>
-                <span>
-                  Proj:{' '}
-                  <Money
-                    amount={kpis.projectedMonthEndExpense}
-                    currency={currency}
-                    privacyMask={privacyMask}
-                    compact
-                    className="font-extrabold text-[#1F2937]"
-                  />
-                </span>
-              </div>
+              <p className="text-xs font-medium text-[#1F2937]/80 mt-1 tabular-nums">
+                Daily pace:{' '}
+                <Money
+                  amount={kpis.dailyBurnRate}
+                  currency={currency}
+                  privacyMask={privacyMask}
+                  className="font-bold text-[#1F2937]"
+                />
+                /day
+              </p>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* 4. Total Net Worth + Forecast Lab CTA */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="card clay-surface-pink flex flex-col justify-between min-w-0"
-        >
+        {/* 4. Net worth */}
+        <div className="card clay-surface-pink flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1F2937]/80">
-              Total Net Worth
+            <span className="text-xs font-bold text-[#1F2937]/85">
+              Net worth
             </span>
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white/75 text-[#6D28D9] border-2 border-white/80"
-              aria-hidden="true"
-            >
-              <Landmark className="w-4 h-4" />
-            </div>
+            <Landmark className="w-4 h-4 text-[#6D28D9] shrink-0" aria-hidden="true" />
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold tracking-tight tabular-nums text-[#1F2937]">
               <Money amount={kpis.totalNetWorth} currency={currency} privacyMask={privacyMask} />
             </div>
-            <div className="mt-1.5 flex items-center gap-2.5 text-xs font-medium text-[#1F2937]/85">
+            <div className="mt-1 flex items-center justify-between text-xs font-medium text-[#1F2937]/80">
               <span>
-                Cash:{' '}
+                Cash{' '}
                 <Money
                   amount={kpis.liquidCash}
                   currency={currency}
                   privacyMask={privacyMask}
                   compact
-                  className="font-extrabold text-[#065F46]"
+                  className="font-bold text-[#065F46]"
                 />
               </span>
-              <span className="text-[#1F2937]/40" aria-hidden="true">
-                •
-              </span>
-              <span>
-                Debt:{' '}
-                <Money
-                  amount={kpis.totalDebt}
-                  currency={currency}
-                  privacyMask={privacyMask}
-                  compact
-                  className="font-extrabold text-[#9F1239]"
-                />
-              </span>
-            </div>
-            <div className="mt-2.5 pt-2 border-t border-white/60">
               <button
                 type="button"
                 onClick={() => setActiveNav('forecast')}
-                className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#5B21B6] hover:underline cursor-pointer"
+                className="text-xs font-bold text-[#5B21B6] hover:underline cursor-pointer"
               >
-                <span>Open Forecast Lab</span>
-                <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
+                Forecast Lab
               </button>
             </div>
           </div>
-        </motion.div>
+        </div>
       </section>
 
-      {/* Friend Savings Squad & Share Leaderboard Spotlight Card */}
+      {/* Clean Friend Savings Squad Summary Card */}
       <section className="card clay-surface-sage min-w-0">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1.5 min-w-0">
+          <div className="space-y-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/85 text-[#1F2937] border-2 border-white/90 text-[11px] font-extrabold">
-                <Users className="w-3.5 h-3.5 text-[#6D28D9]" aria-hidden="true" />
-                <span>Co-Op Friend Savings Squad</span>
-              </span>
-              {squadLeaderboard.topSaver && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FDBCB4] text-[#1F2937] border-2 border-white/90 text-[11px] font-extrabold shadow-xs">
-                  <Trophy className="w-3.5 h-3.5 text-[#92400E]" aria-hidden="true" />
-                  <span>
-                    Top Saver: {squadLeaderboard.topSaver.member.name} •{' '}
-                    {squadLeaderboard.topSaver.sharePercent.toFixed(1)}% Share of Pot
-                  </span>
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-baseline gap-2.5">
-              <h2 className="text-lg sm:text-xl font-extrabold text-[#1F2937] tracking-tight">
-                {firstSquad.emoji} {firstSquad.name}
+              <CategoryIcon icon={firstSquad.emoji} className="w-4 h-4 text-[#1F2937]" />
+              <h2 className="text-base sm:text-lg font-extrabold text-[#1F2937] tracking-tight">
+                {firstSquad.name}
               </h2>
-              <span className="text-xs font-extrabold text-[#1F2937]/80 tabular-nums">
+              <span className="px-2 py-0.5 rounded-lg bg-white/75 text-xs font-bold text-[#1F2937] tabular-nums">
                 Room {firstSquad.roomCode}
               </span>
             </div>
-
-            <p className="text-xs font-semibold text-[#1F2937]/85">
+            <p className="text-xs font-medium text-[#1F2937]/85">
               {squadLeaderboard.headline}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <div className="px-3.5 py-2 rounded-2xl bg-white/80 border-2 border-white/90 text-right">
-              <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#1F2937]/70">
-                Squad Pot Progress
-              </div>
-              <div className="text-sm font-extrabold text-[#1F2937] tabular-nums">
-                <Money
-                  amount={squadLeaderboard.totalSaved}
-                  currency={currency}
-                  privacyMask={privacyMask}
-                />{' '}
-                <span className="text-xs font-bold text-[#1F2937]/70">
-                  / <Money amount={squadLeaderboard.targetAmount} currency={currency} privacyMask={privacyMask} compact /> (
-                  {squadLeaderboard.progressPercent.toFixed(1)}%)
-                </span>
-              </div>
+            <div className="text-sm font-extrabold text-[#1F2937] tabular-nums">
+              <Money
+                amount={squadLeaderboard.totalSaved}
+                currency={currency}
+                privacyMask={privacyMask}
+              />{' '}
+              <span className="text-xs font-semibold text-[#1F2937]/75">
+                of <Money amount={squadLeaderboard.targetAmount} currency={currency} privacyMask={privacyMask} compact /> (
+                {squadLeaderboard.progressPercent.toFixed(0)}%)
+              </span>
             </div>
 
             <button
               type="button"
               onClick={() => setActiveNav('squad')}
-              className="button tactile-btn-primary !px-4 !py-2.5 !text-xs sm:!text-sm inline-flex items-center gap-2 cursor-pointer"
+              className="tactile-btn-primary px-4 py-2 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
             >
-              <Users className="w-4 h-4 text-[#1F2937]" aria-hidden="true" />
-              <span>Open Friend Squads &amp; Share Link</span>
-              <ArrowRight className="w-4 h-4 text-[#1F2937]" aria-hidden="true" />
+              <Users className="w-3.5 h-3.5 text-[#1F2937]" aria-hidden="true" />
+              <span>Open Friend Squads</span>
             </button>
           </div>
         </div>
 
-        {/* Reference Claymorphism Progress Bar */}
-        <div className="progress mt-3.5" aria-label="Squad savings goal progress">
+        <div className="progress mt-3" aria-label="Squad savings goal progress">
           <span style={{ width: `${squadLeaderboard.progressPercent}%` }} />
         </div>
 
-        {/* Friend Share Pills */}
-        <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           {squadLeaderboard.entries.map((entry) => (
             <div
               key={entry.member.id}
-              className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-2xl bg-white/85 border-2 border-white/90 text-[#1F2937]"
+              className="flex items-center justify-between gap-2 px-3 py-2 rounded-2xl bg-white/85 border border-white text-[#1F2937]"
             >
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
                 <span
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-extrabold text-[#1F2937] border-2 border-white shrink-0"
+                  className="w-7 h-7 rounded-xl flex items-center justify-center text-xs font-extrabold text-[#1F2937] border border-white shrink-0"
                   style={{ backgroundColor: entry.member.clayColor }}
                 >
-                  {entry.rank === 1 ? '👑' : `#${entry.rank}`}
+                  {entry.rank === 1 ? <Trophy className="w-3.5 h-3.5" /> : `#${entry.rank}`}
                 </span>
                 <div className="min-w-0">
                   <div className="text-xs font-extrabold text-[#1F2937] truncate">
                     {entry.member.name}
                   </div>
-                  <div className="text-[11px] font-bold text-[#1F2937]/75 tabular-nums">
-                    {entry.sharePercent.toFixed(1)}% share • {entry.contributionCount} deposits
+                  <div className="text-[11px] font-medium text-[#1F2937]/75 tabular-nums">
+                    {entry.sharePercent.toFixed(1)}% share
                   </div>
                 </div>
               </div>
-              <div className="text-right shrink-0">
-                <div className="text-xs font-extrabold text-[#1F2937] tabular-nums">
-                  <Money
-                    amount={entry.totalContributed}
-                    currency={currency}
-                    privacyMask={privacyMask}
-                  />
-                </div>
-                {entry.isTopSaver && entry.shareGapPercent > 0 && (
-                  <div className="text-[10px] font-extrabold text-[#047857] tabular-nums">
-                    +{entry.shareGapPercent.toFixed(1)}% lead
-                  </div>
-                )}
+              <div className="text-xs font-extrabold text-[#1F2937] tabular-nums shrink-0">
+                <Money
+                  amount={entry.totalContributed}
+                  currency={currency}
+                  privacyMask={privacyMask}
+                />
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Proactive Local Insights Strip */}
+      {/* Proactive Insights Strip */}
       {insights.length > 0 && (
-        <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {insights.slice(0, 3).map((ins) => {
             const Icon =
               ins.severity === 'warning'
                 ? AlertTriangle
                 : ins.severity === 'positive'
-                ? Sparkles
+                ? CheckCircle2
                 : Info;
             const accentColor =
               ins.severity === 'warning'
@@ -563,10 +402,10 @@ export const DashboardView: React.FC = () => {
                     setActiveNav(ins.actionTarget);
                   }
                 }}
-                className="tactile-card text-left p-3.5 transition-all hover:border-[var(--border-strong)] hover:-translate-y-px cursor-pointer"
+                className="tactile-card text-left p-3.5 transition-all hover:border-[var(--border-strong)] cursor-pointer"
                 style={{ borderLeftWidth: '3px', borderLeftColor: accentColor }}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
                     <span
                       className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
@@ -580,9 +419,8 @@ export const DashboardView: React.FC = () => {
                     </span>
                   </div>
                   {ins.actionLabel && (
-                    <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-[var(--accent-primary-text)] shrink-0">
+                    <span className="text-[11px] font-semibold text-[var(--accent-primary-text)] shrink-0">
                       {ins.actionLabel}
-                      <ArrowRight className="w-3 h-3" aria-hidden="true" />
                     </span>
                   )}
                 </div>
@@ -606,28 +444,26 @@ export const DashboardView: React.FC = () => {
         onNavigate={setActiveNav}
       />
 
-      {/* Hero Cashflow Sankey Diagram */}
+      {/* Cashflow Sankey Diagram */}
       <section className="tactile-card p-5 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div>
             <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
-              Cashflow Sankey
+              Cashflow Flow
             </h2>
             <p className="text-xs text-[var(--text-muted)]">
-              Follow every dollar from income sources into Needs, Wants, and Savings · Click any category to drill down
+              Income allocation across Needs, Wants, and Savings. Click a category to inspect transactions.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="tactile-well px-2.5 py-1 text-[var(--text-secondary)]">
-              Inflow:{' '}
-              <Money
-                amount={sankeyGraph.totalIncome}
-                currency={currency}
-                privacyMask={privacyMask}
-                className="font-semibold text-[var(--accent-positive)]"
-              />
-            </span>
-          </div>
+          <span className="tactile-well px-2.5 py-1 text-xs text-[var(--text-secondary)] self-start sm:self-auto">
+            Inflow:{' '}
+            <Money
+              amount={sankeyGraph.totalIncome}
+              currency={currency}
+              privacyMask={privacyMask}
+              className="font-semibold text-[var(--accent-positive)]"
+            />
+          </span>
         </div>
         <SankeyChart
           graph={sankeyGraph}
@@ -639,7 +475,6 @@ export const DashboardView: React.FC = () => {
 
       {/* Trends + Top Categories Row */}
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        {/* Income vs Expenses / Net Worth Chart */}
         <div className="xl:col-span-2 min-w-0 tactile-card p-5">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
@@ -648,76 +483,43 @@ export const DashboardView: React.FC = () => {
               </h2>
               <p className="text-xs text-[var(--text-muted)]">
                 {trendMode === 'cashflow'
-                  ? 'Monthly income vs. net expenses (refunds offset automatically)'
-                  : 'Historical combined assets minus liabilities'}
+                  ? 'Monthly income and net expenses'
+                  : 'Combined assets minus liabilities'}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {trendMode === 'networth' && (
-                <button
-                  type="button"
-                  onClick={() => setActiveNav('forecast')}
-                  className="tactile-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[var(--accent-primary-text)] cursor-pointer"
-                >
-                  <span>Open Forecast Lab</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
-                </button>
-              )}
-              <div
-                role="tablist"
-                aria-label="Trend chart mode"
-                className="tactile-well inline-flex items-center p-1 gap-1"
+            <div
+              role="tablist"
+              aria-label="Trend chart mode"
+              className="tactile-well inline-flex items-center p-1 gap-1"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={trendMode === 'cashflow'}
+                onClick={() => setTrendMode('cashflow')}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                  trendMode === 'cashflow'
+                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-hairline)] shadow-xs'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-transparent'
+                }`}
               >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={trendMode === 'cashflow'}
-                  onClick={() => setTrendMode('cashflow')}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    trendMode === 'cashflow'
-                      ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-hairline)] shadow-xs'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-transparent'
-                  }`}
-                >
-                  Cashflow Bars
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={trendMode === 'networth'}
-                  onClick={() => setTrendMode('networth')}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                    trendMode === 'networth'
-                      ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-hairline)] shadow-xs'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-transparent'
-                  }`}
-                >
-                  Net Worth Area
-                </button>
-              </div>
+                Cashflow
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={trendMode === 'networth'}
+                onClick={() => setTrendMode('networth')}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                  trendMode === 'networth'
+                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-hairline)] shadow-xs'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-transparent'
+                }`}
+              >
+                Net Worth
+              </button>
             </div>
           </div>
-
-          {trendMode === 'cashflow' && (
-            <div className="flex items-center gap-4 mb-2 text-[11px] text-[var(--text-muted)]">
-              <span className="inline-flex items-center gap-1.5">
-                <span
-                  className="w-2.5 h-2.5 rounded-xs"
-                  style={{ backgroundColor: chartTheme.positive }}
-                  aria-hidden="true"
-                />
-                Income
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span
-                  className="w-2.5 h-2.5 rounded-xs"
-                  style={{ backgroundColor: chartTheme.secondary }}
-                  aria-hidden="true"
-                />
-                Expenses
-              </span>
-            </div>
-          )}
 
           <div className="h-[260px] w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
@@ -832,7 +634,7 @@ export const DashboardView: React.FC = () => {
                 Top Categories
               </h2>
               <p className="text-xs text-[var(--text-muted)]">
-                Click any category to inspect transactions
+                Select a category to view transactions
               </p>
             </div>
             <button
@@ -927,7 +729,7 @@ export const DashboardView: React.FC = () => {
               Daily Spending Heatmap
             </h2>
             <p className="text-xs text-[var(--text-muted)]">
-              Last 16 weeks of spending intensity · Spot no-spend streaks and spike days instantly
+              Last 16 weeks of daily spending activity
             </p>
           </div>
           <SpendingHeatmap
@@ -968,7 +770,7 @@ export const DashboardView: React.FC = () => {
                   aria-hidden="true"
                 />
                 <p className="text-xs font-semibold text-[var(--text-primary)]">
-                  All clear for the next 14 days
+                  No bills due in the next 14 days
                 </p>
               </div>
             ) : (
@@ -1009,7 +811,6 @@ export const DashboardView: React.FC = () => {
                       </div>
                       <div className="text-[11px] text-[var(--text-muted)] mt-0.5 tabular-nums">
                         {formatShortDate(bill.nextDueDate)}
-                        {bill.autoPay ? ' · Auto-pay' : ''}
                       </div>
                     </div>
 
@@ -1031,7 +832,7 @@ export const DashboardView: React.FC = () => {
                         title="Log transaction and advance next due date"
                         aria-label={`Pay and log ${bill.name}`}
                       >
-                        Pay &amp; Log
+                        Pay
                       </button>
                     </div>
                   </div>

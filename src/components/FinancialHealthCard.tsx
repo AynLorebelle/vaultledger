@@ -227,10 +227,10 @@ export const FinancialHealthCard: React.FC<FinancialHealthCardProps> = ({
         {/* Right Column: 5 Interactive Metric Rows */}
         <div className="lg:col-span-8 flex flex-col gap-2.5">
           <div className="flex items-center justify-between px-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="text-xs font-semibold text-[var(--text-muted)]">
               Score Breakdown
             </span>
-            <span className="text-[11px] text-[var(--text-muted)]">
+            <span className="text-xs text-[var(--text-muted)]">
               Select a pillar for guidance
             </span>
           </div>

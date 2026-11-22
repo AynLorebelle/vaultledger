@@ -14,7 +14,6 @@ import {
   Trash2,
   Flame,
   Snowflake,
-  Sparkles,
   CheckCircle2,
   TrendingDown,
   PiggyBank,
@@ -514,7 +513,7 @@ export const GoalsDebtView: React.FC = () => {
               borderColor: 'var(--accent-positive)',
             }}
           >
-            <Sparkles
+            <CheckCircle2
               className="w-7 h-7 mx-auto mb-2"
               style={{ color: 'var(--accent-positive)' }}
             />
@@ -710,7 +709,7 @@ export const GoalsDebtView: React.FC = () => {
 
               {/* Payoff Order Timeline */}
               <div className="space-y-2.5">
-                <div className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                <div className="text-xs font-semibold text-[var(--text-muted)]">
                   Payoff Order ({strategy})
                 </div>
                 {activeSim.payoffOrder.map((step, idx) => {

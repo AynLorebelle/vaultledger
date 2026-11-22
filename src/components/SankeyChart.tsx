@@ -343,7 +343,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
               y={15}
               textAnchor="middle"
               fill="var(--text-muted)"
-              className="text-[10px] font-semibold uppercase tracking-wider"
+              className="text-[11px] font-semibold"
             >
               {COLUMN_TITLES[col]}
             </text>

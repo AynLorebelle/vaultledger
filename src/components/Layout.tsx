@@ -24,7 +24,6 @@ import {
   X,
   ShieldCheck,
   Database,
-  Sparkles,
   CheckCircle2,
   Bot,
 } from 'lucide-react';
@@ -297,7 +296,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         >
           <span className="flex items-center gap-1.5 truncate">
             {isDemo ? (
-              <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+              <Database className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
             ) : (
               <CheckCircle2
                 className="w-3.5 h-3.5 shrink-0"
@@ -451,8 +450,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               />
               <span>
                 {isDesktop
-                  ? '100% Offline • Desktop Local Vault'
-                  : 'Offline PWA • IndexedDB'}
+                  ? 'Offline Desktop Vault'
+                  : 'Offline Local Vault'}
               </span>
             </div>
 
@@ -527,10 +526,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               type="button"
               onClick={() => setProfileModalOpen(true)}
               aria-label="Open User Profile and Personalization Settings"
-              title="Personalize Profile, Currency & Aynieee Vibe"
+              title="Profile & Currency Settings"
               className="tactile-btn inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-extrabold cursor-pointer"
             >
-              <span className="text-sm leading-none">{profile.avatarEmoji}</span>
+              <span className="px-1.5 py-0.5 rounded-md bg-[var(--clay-peach)] text-[#1F2937] text-[10px] font-extrabold leading-none">
+                {profile.avatarEmoji}
+              </span>
               <span className="hidden md:inline max-w-[110px] truncate">
                 {profile.displayName.split(' ')[0]}
               </span>

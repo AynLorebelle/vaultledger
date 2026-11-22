@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Sparkles,
   Plus,
   Play,
   Edit3,
@@ -226,7 +225,7 @@ export const RulesView: React.FC = () => {
         <div className="tactile-card border-l-4 border-l-[var(--accent-primary)] p-5 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" style={{ color: 'var(--accent-primary-text)' }} />
+              <SlidersHorizontal className="w-4 h-4" style={{ color: 'var(--accent-primary-text)' }} />
               <h2 className="text-sm font-semibold text-[var(--text-primary)]">
                 Smart Rule Suggestions
               </h2>

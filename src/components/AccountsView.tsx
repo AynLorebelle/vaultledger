@@ -11,13 +11,13 @@ import {
   Lock,
   Unlock,
   Shield,
-  Sparkles,
   RotateCcw,
   Globe,
   Eye,
   EyeOff,
   Archive,
   ArchiveRestore,
+  Database,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { computeAllAccountBalances } from '../core/analytics';
@@ -319,7 +319,7 @@ export const AccountsView: React.FC = () => {
                   >
                     <GroupIcon className="w-3.5 h-3.5" aria-hidden="true" />
                   </div>
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                  <h2 className="text-xs font-bold text-[var(--text-secondary)]">
                     {grp.title}
                   </h2>
                   {hasMixedCurrency && (
@@ -702,7 +702,7 @@ export const AccountsView: React.FC = () => {
           <div className="tactile-well p-4 space-y-2.5 flex flex-col justify-between">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-primary)]">
-                <Sparkles
+                <Database
                   className="w-4 h-4"
                   style={{ color: 'var(--accent-warning)' }}
                   aria-hidden="true"
@@ -744,7 +744,7 @@ export const AccountsView: React.FC = () => {
                   borderColor: 'transparent',
                 }}
               >
-                <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                <Database className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>Load Sample</span>
               </button>
             </div>

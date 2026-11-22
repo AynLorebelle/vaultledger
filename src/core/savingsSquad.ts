@@ -38,7 +38,7 @@ export function createDefaultSavingsSquads(
     {
       id: 'squad-tokyo-2027',
       name: 'Tokyo Besties Trip 2027',
-      emoji: '✈️',
+      emoji: 'plane',
       targetAmount: 6000 * mult,
       currency: baseCurrency,
       roomCode: 'AYN-777',
@@ -113,7 +113,7 @@ export function createDefaultSavingsSquads(
     {
       id: 'squad-condo-duo',
       name: 'Co-Op Dream Studio & Emergency Pot',
-      emoji: '🏡',
+      emoji: 'home',
       targetAmount: 12000 * mult,
       currency: baseCurrency,
       roomCode: 'AYN-204',

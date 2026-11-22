@@ -34,7 +34,7 @@ function createDefaultSettings(isDemoData: boolean, nowIso: string): VaultSettin
     profile: {
       displayName: 'Ayn Lorebelle',
       tagline: 'Smart Saver & Co-Op Squad Leader',
-      avatarEmoji: '🌸',
+      avatarEmoji: 'AL',
       clayAccent: '#FDBCB4',
       monthlySavingsGoalPct: 25,
       aynieeeTone: 'conyo_bestie',

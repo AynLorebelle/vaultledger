@@ -25,9 +25,11 @@ import {
   TrendingUp,
   Wifi,
   Repeat,
-  Sparkles,
   Wallet,
   Building2,
+  Target,
+  Users,
+  Trophy,
   X,
 } from 'lucide-react';
 import type { CurrencyCode } from '../types/finance';
@@ -137,10 +139,12 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   trendingup: TrendingUp,
   wifi: Wifi,
   repeat: Repeat,
-  sparkles: Sparkles,
   wallet: Wallet,
   building: Building2,
   building2: Building2,
+  target: Target,
+  users: Users,
+  trophy: Trophy,
 };
 
 export const CategoryIcon: React.FC<{
@@ -154,10 +158,6 @@ export const CategoryIcon: React.FC<{
   const IconComp = ICON_MAP[normalized];
   if (IconComp) {
     return <IconComp className={className} />;
-  }
-  // If it's an emoji or short text glyph
-  if (icon.length <= 4 && !/^[a-zA-Z0-9_-]+$/.test(icon)) {
-    return <span className="text-sm leading-none select-none">{icon}</span>;
   }
   return <Tag className={className} />;
 };

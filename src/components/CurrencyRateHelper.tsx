@@ -332,7 +332,7 @@ export const CurrencyRateHelper: React.FC<CurrencyRateHelperProps> = ({
         {/* Converted Output Well */}
         <div className="tactile-well px-4 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+            <p className="text-xs font-medium text-[var(--text-muted)]">
               Converted Amount
             </p>
             <div className="mt-0.5 flex flex-wrap items-baseline gap-2">
@@ -474,7 +474,7 @@ export const CurrencyRateHelper: React.FC<CurrencyRateHelperProps> = ({
                         </span>
                         {isBase && (
                           <span
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide"
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold"
                             style={{
                               background: 'var(--accent-primary-soft)',
                               color: 'var(--accent-primary-text)',

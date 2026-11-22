@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import {
   Plus,
   Sliders,
-  Sparkles,
   RefreshCw,
   Check,
   Trash2,
@@ -26,25 +25,25 @@ const GROUP_SECTIONS: Array<{
   subtitle: string;
   accentStyle: React.CSSProperties;
 }> = [
-  {
-    group: 'needs',
-    title: 'Essential Needs',
-    subtitle: 'Housing, groceries, utilities, transit & healthcare',
-    accentStyle: { color: 'var(--accent-info)' },
-  },
-  {
-    group: 'wants',
-    title: 'Lifestyle & Wants',
-    subtitle: 'Dining, coffee, shopping, entertainment & travel',
-    accentStyle: { color: 'var(--accent-primary-text)' },
-  },
-  {
-    group: 'savings',
-    title: 'Savings & Investments',
-    subtitle: 'Emergency fund, retirement & wealth building',
-    accentStyle: { color: 'var(--accent-positive)' },
-  },
-];
+    {
+      group: 'needs',
+      title: 'Essential Needs',
+      subtitle: 'Housing, groceries, utilities, transit & healthcare',
+      accentStyle: { color: 'var(--accent-info)' },
+    },
+    {
+      group: 'wants',
+      title: 'Lifestyle & Wants',
+      subtitle: 'Dining, coffee, shopping, entertainment & travel',
+      accentStyle: { color: 'var(--accent-primary-text)' },
+    },
+    {
+      group: 'savings',
+      title: 'Savings & Investments',
+      subtitle: 'Emergency fund, retirement & wealth building',
+      accentStyle: { color: 'var(--accent-positive)' },
+    },
+  ];
 
 export const BudgetsView: React.FC = () => {
   const data = useFinanceStore((s) => s.data);
@@ -168,8 +167,8 @@ export const BudgetsView: React.FC = () => {
     remaining < 0
       ? 'var(--accent-danger)'
       : overallPct >= 80
-      ? 'var(--accent-warning)'
-      : 'var(--accent-positive)';
+        ? 'var(--accent-warning)'
+        : 'var(--accent-positive)';
 
   return (
     <div className="space-y-6">
@@ -244,7 +243,7 @@ export const BudgetsView: React.FC = () => {
             <div className="flex items-baseline justify-between">
               <div>
                 <h2
-                  className="text-xs font-bold uppercase tracking-wider"
+                  className="text-sm font-bold"
                   style={sec.accentStyle}
                 >
                   {sec.title}
@@ -267,8 +266,8 @@ export const BudgetsView: React.FC = () => {
                 const barFill = over
                   ? 'var(--accent-danger)'
                   : caution
-                  ? 'var(--accent-warning)'
-                  : 'var(--accent-positive)';
+                    ? 'var(--accent-warning)'
+                    : 'var(--accent-positive)';
 
                 return (
                   <div
@@ -278,8 +277,8 @@ export const BudgetsView: React.FC = () => {
                       over
                         ? { borderColor: 'var(--accent-danger)' }
                         : caution
-                        ? { borderColor: 'var(--accent-warning)' }
-                        : undefined
+                          ? { borderColor: 'var(--accent-warning)' }
+                          : undefined
                     }
                   >
                     <div className="flex items-start justify-between gap-2">
@@ -367,9 +366,8 @@ export const BudgetsView: React.FC = () => {
                           amount={spent}
                           currency={currency}
                           privacyMask={privacyMask}
-                          className={`font-semibold ${
-                            over ? 'text-[var(--accent-danger)]' : 'text-[var(--text-primary)]'
-                          }`}
+                          className={`font-semibold ${over ? 'text-[var(--accent-danger)]' : 'text-[var(--text-primary)]'
+                            }`}
                         />
                         <span
                           className="text-[11px] font-semibold tabular-nums"
@@ -377,8 +375,8 @@ export const BudgetsView: React.FC = () => {
                             color: over
                               ? 'var(--accent-danger)'
                               : caution
-                              ? 'var(--accent-warning)'
-                              : 'var(--text-muted)',
+                                ? 'var(--accent-warning)'
+                                : 'var(--text-muted)',
                           }}
                         >
                           {effective > 0
@@ -502,7 +500,7 @@ export const BudgetsView: React.FC = () => {
                 onClick={applySimulatedBudgets}
                 className="tactile-btn-primary inline-flex items-center gap-1.5 px-4 py-2 rounded-xl disabled:opacity-40 text-xs font-semibold cursor-pointer"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Check className="w-3.5 h-3.5" />
                 Apply Simulated Budgets
               </button>
             </div>
@@ -576,7 +574,7 @@ export const BudgetsView: React.FC = () => {
             <div className="tactile-well p-5 flex flex-col justify-between gap-4">
               <div>
                 <div
-                  className="text-[11px] font-semibold uppercase tracking-wider"
+                  className="text-xs font-semibold"
                   style={{ color: 'var(--accent-primary-text)' }}
                 >
                   Projected Impact
@@ -706,9 +704,8 @@ export const BudgetsView: React.FC = () => {
                   onClick={() => setNewColor(c)}
                   aria-label={`Select color ${c}`}
                   aria-pressed={newColor === c}
-                  className={`w-7 h-7 rounded-full transition-transform cursor-pointer ${
-                    newColor === c ? 'ring-2 ring-offset-2 ring-[var(--focus-ring)] ring-offset-[var(--bg-surface)] scale-110' : ''
-                  }`}
+                  className={`w-7 h-7 rounded-full transition-transform cursor-pointer ${newColor === c ? 'ring-2 ring-offset-2 ring-[var(--focus-ring)] ring-offset-[var(--bg-surface)] scale-110' : ''
+                    }`}
                   style={{ backgroundColor: c }}
                 />
               ))}
@@ -727,11 +724,10 @@ export const BudgetsView: React.FC = () => {
                     key={ic.id}
                     type="button"
                     onClick={() => setNewIcon(ic.id)}
-                    className={`p-2 rounded-xl border flex items-center justify-center transition-colors cursor-pointer ${
-                      selected
+                    className={`p-2 rounded-xl border flex items-center justify-center transition-colors cursor-pointer ${selected
                         ? 'border-[var(--accent-primary)] bg-[var(--accent-primary-soft)] text-[var(--accent-primary-text)]'
                         : 'border-[var(--border-hairline)] text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]'
-                    }`}
+                      }`}
                     title={ic.label}
                     aria-label={`Select ${ic.label} icon`}
                     aria-pressed={selected}

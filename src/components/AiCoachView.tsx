@@ -3,23 +3,17 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Bot,
   Send,
-  Sparkles,
   Wifi,
   WifiOff,
   KeyRound,
   Trash2,
   ShieldCheck,
-  TrendingUp,
   Users,
   X,
-  MessageSquareHeart,
   ChevronDown,
   ChevronUp,
   Check,
   User,
-  Coins,
-  Plus,
-  PieChart,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import {
@@ -30,13 +24,13 @@ import {
   sendGroqAdvisorMessage,
 } from '../core/aiCoach';
 import { computeDashboardKPIs } from '../core/analytics';
-import { CURRENCY_METADATA, SUPPORTED_CURRENCIES } from '../core/currency';
+import { CURRENCY_METADATA } from '../core/currency';
 import { computeFinancialHealthScore } from '../core/healthScore';
 import { computeSquadLeaderboard, createDefaultSavingsSquads } from '../core/savingsSquad';
 import type { AiChatMessage, AynieeeTone, CurrencyCode } from '../types/finance';
 import { Money } from './ui';
 
-const CHAT_STORAGE_KEY = 'aynlytics-aynieee-chat-v2';
+const CHAT_STORAGE_KEY = 'aynlytics-aynieee-chat-v3';
 
 function formatMessageText(text: string): React.ReactNode {
   const lines = text.split('\n');
@@ -78,10 +72,10 @@ function buildWelcomeMessage(displayName: string, currency: CurrencyCode): AiCha
   return {
     id: 'msg-welcome',
     role: 'assistant',
-    content: `Hey bestie **${displayName}**! I'm **Aynieee**, your personal AI Financial Bestie & Coach inside **AYNLYTICS 2.0**.\n\nWhen you're online, I use **Groq Cloud AI** with your live **${currency}** vault numbers (Safe-to-Spend, Budgets, Financial Health Score, and Friend Savings Squad shares) to give personalized money advice—and if you go offline, I switch automatically to my local financial engine.\n\nTap a quick question below or ask me anything!`,
+    content: `Hi **${displayName}**, I'm **Aynieee**, your financial advisor in **AYNLYTICS**.\n\nWhen online, I use Groq Cloud with your live **${currency}** numbers (Safe to spend, Budgets, Health Score, and Friend Savings Squad shares). When offline, I switch automatically to the local financial engine.\n\nPick a question below or type your own.`,
     createdAt: new Date().toISOString(),
     source: 'groq-cloud',
-    modelUsed: 'Aynieee • Groq Cloud AI',
+    modelUsed: 'Aynieee',
   };
 }
 
@@ -92,10 +86,8 @@ export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: ()
   const data = useFinanceStore((s) => s.data);
   const updateSettings = useFinanceStore((s) => s.updateSettings);
   const updateUserProfile = useFinanceStore((s) => s.updateUserProfile);
-  const setBaseCurrency = useFinanceStore((s) => s.setBaseCurrency);
   const setActiveNav = useFinanceStore((s) => s.setActiveNav);
   const setProfileModalOpen = useFinanceStore((s) => s.setProfileModalOpen);
-  const openQuickAdd = useFinanceStore((s) => s.openQuickAdd);
   const showToast = useFinanceStore((s) => s.showToast);
 
   const profile = getEffectiveProfile(data);
@@ -204,12 +196,12 @@ export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: ()
   const handleSaveKey = (e: React.FormEvent) => {
     e.preventDefault();
     const cleaned = tempKey.trim();
-    updateSettings({ groqApiKey: cleaned });
+    updateSettings({ groqApiKey: cleaned, groqModel: selectedModel });
     setKeyDrawerOpen(false);
     showToast(
       cleaned
-        ? 'Saved your Groq API key locally for Aynieee!'
-        : 'Cleared custom Groq API key (using cloud proxy / local engine).',
+        ? 'Saved Groq API key locally'
+        : 'Cleared custom Groq API key',
       'success'
     );
   };
@@ -222,118 +214,67 @@ export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: ()
     } catch {
       // ignore
     }
-    showToast('Reset your chat with Aynieee', 'info');
+    showToast('Reset conversation with Aynieee', 'info');
   };
 
   return (
     <div className={compactDrawer ? 'space-y-4' : 'space-y-6 pb-10'}>
-      {/* Header Bar */}
+      {/* Clean Header Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <div>
-          <div className="flex flex-wrap items-center gap-2 mb-1.5">
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold ${
-                isOnline ? 'clay-surface-mint' : 'clay-surface-peach'
-              }`}
-            >
-              {isOnline ? (
-                <>
-                  <Wifi className="w-3.5 h-3.5 text-[#065F46]" />
-                  <span>Online • Aynieee Groq Cloud AI Active</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff className="w-3.5 h-3.5 text-[#92400E]" />
-                  <span>Offline Mode • Aynieee Local Engine</span>
-                </>
-              )}
-            </span>
-
-            <button
-              type="button"
-              onClick={() => setProfileModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full clay-surface-pink text-xs font-extrabold cursor-pointer hover:scale-105 transition-transform"
-            >
-              <span>{profile.avatarEmoji}</span>
-              <span>For {profile.displayName}</span>
-              <span>•</span>
-              <span>{CURRENCY_METADATA[currency].symbol} {currency}</span>
-            </button>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl clay-surface-peach flex items-center justify-center shrink-0">
+            <Bot className="w-5 h-5 text-[#1F2937]" />
           </div>
-
-          <h1
-            className={`${
-              compactDrawer ? 'text-xl' : 'text-2xl sm:text-3xl'
-            } font-extrabold text-[var(--text-primary)] tracking-tight flex items-center gap-2.5`}
-          >
-            <span className="w-9 h-9 rounded-2xl clay-surface-peach inline-flex items-center justify-center text-lg shadow-xs">
-              🌸
-            </span>
-            <span>Aynieee — Your Groq AI Financial Bestie</span>
-          </h1>
-          {!compactDrawer && (
-            <p className="text-sm font-semibold text-[var(--text-secondary)] mt-1">
-              Personalized money coaching for {profile.displayName} ({profile.tagline}) in{' '}
-              <strong>
-                {CURRENCY_METADATA[currency].name} ({CURRENCY_METADATA[currency].symbol})
-              </strong>
-            </p>
-          )}
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1
+                className={`${
+                  compactDrawer ? 'text-lg' : 'text-xl sm:text-2xl'
+                } font-extrabold text-[var(--text-primary)] tracking-tight`}
+              >
+                Aynieee, your financial advisor
+              </h1>
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                  isOnline ? 'clay-surface-mint' : 'clay-surface-peach'
+                }`}
+              >
+                {isOnline ? (
+                  <>
+                    <Wifi className="w-3 h-3 text-[#065F46]" />
+                    <span>Online</span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-3 h-3 text-[#92400E]" />
+                    <span>Offline</span>
+                  </>
+                )}
+              </span>
+            </div>
+            {!compactDrawer && (
+              <p className="text-xs font-medium text-[var(--text-secondary)] mt-0.5">
+                Advising {profile.displayName} in {CURRENCY_METADATA[currency].name} ({CURRENCY_METADATA[currency].symbol})
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Aynieee Personality Tone Selector */}
           <select
             value={profile.aynieeeTone}
             onChange={(e) =>
               updateUserProfile({ aynieeeTone: e.target.value as AynieeeTone })
             }
-            aria-label="Select Aynieee Personality Vibe"
-            className="tactile-input px-3 py-2 text-xs font-extrabold cursor-pointer"
+            aria-label="Select Aynieee tone"
+            className="tactile-input px-3 py-1.5 text-xs font-bold cursor-pointer"
           >
             {AYNIEEE_TONE_OPTIONS.map((t) => (
               <option key={t.id} value={t.id}>
-                Vibe: {t.label}
+                Style: {t.label}
               </option>
             ))}
           </select>
-
-          {/* Instant Currency Switcher */}
-          <select
-            value={currency}
-            onChange={(e) => setBaseCurrency(e.target.value as CurrencyCode)}
-            aria-label="Switch active currency"
-            className="tactile-input px-3 py-2 text-xs font-extrabold cursor-pointer"
-          >
-            {SUPPORTED_CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {CURRENCY_METADATA[c].symbol} {c}
-              </option>
-            ))}
-          </select>
-
-          {/* Groq Model Selector */}
-          <select
-            value={selectedModel}
-            onChange={(e) => updateSettings({ groqModel: e.target.value })}
-            aria-label="Select Groq AI Model"
-            className="tactile-input px-3 py-2 text-xs font-extrabold cursor-pointer"
-          >
-            {GROQ_MODELS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-
-          <button
-            type="button"
-            onClick={() => setProfileModalOpen(true)}
-            className="tactile-btn px-3 py-2 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
-          >
-            <User className="w-3.5 h-3.5 text-[#6D28D9]" />
-            <span>Profile</span>
-          </button>
 
           <button
             type="button"
@@ -341,10 +282,10 @@ export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: ()
               setTempKey(savedKey);
               setKeyDrawerOpen((v) => !v);
             }}
-            className="tactile-btn px-3 py-2 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+            className="tactile-btn px-3 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
           >
             <KeyRound className="w-3.5 h-3.5 text-[#6D28D9]" />
-            <span>{savedKey ? 'Groq Key' : 'API Key'}</span>
+            <span>Model &amp; Key</span>
             {keyDrawerOpen ? (
               <ChevronUp className="w-3.5 h-3.5" />
             ) : (
@@ -356,7 +297,7 @@ export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: ()
             type="button"
             onClick={handleClearChat}
             aria-label="Reset conversation with Aynieee"
-            className="tactile-btn px-3 py-2 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+            className="tactile-btn px-3 py-1.5 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Reset</span>
@@ -367,7 +308,7 @@ export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: ()
               type="button"
               onClick={onCloseDrawer}
               aria-label="Close Aynieee Drawer"
-              className="tactile-btn p-2 cursor-pointer"
+              className="tactile-btn p-1.5 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -375,7 +316,7 @@ export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: ()
         </div>
       </div>
 
-      {/* Collapsible Custom Groq API Key Drawer */}
+      {/* Collapsible Model & API Key Drawer */}
       <AnimatePresence>
         {keyDrawerOpen && (
           <motion.form
@@ -383,41 +324,56 @@ export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: ()
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             onSubmit={handleSaveKey}
-            className="card clay-surface-blue space-y-2.5"
+            className="card clay-surface-blue space-y-3"
           >
-            <div>
-              <h2 className="text-sm font-extrabold text-[#1F2937] flex items-center gap-2">
-                <KeyRound className="w-4 h-4" />
-                Aynieee Groq Cloud API Key Configuration
-              </h2>
-              <p className="text-xs font-semibold text-[#1F2937]/80">
-                Aynieee uses our pre-configured cloud Groq proxy online automatically—or you can paste your own <code className="font-mono font-bold">gsk_...</code> key here (stored 100% locally on your device).
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="password"
-                value={tempKey}
-                onChange={(e) => setTempKey(e.target.value)}
-                placeholder="Optional: gsk_..."
-                aria-label="Groq API key"
-                className="tactile-input flex-1 px-3.5 py-2 text-xs font-mono font-bold"
-              />
-              <button
-                type="submit"
-                className="tactile-btn-primary px-4 py-2 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
-              >
-                <Check className="w-3.5 h-3.5" />
-                Save Key Locally
-              </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-[#1F2937] mb-1">
+                  Groq Model
+                </label>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => updateSettings({ groqModel: e.target.value })}
+                  aria-label="Select Groq AI Model"
+                  className="tactile-input w-full px-3 py-2 text-xs font-bold cursor-pointer"
+                >
+                  {GROQ_MODELS.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label} ({m.badge})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-[#1F2937] mb-1">
+                  Optional Personal Groq Key (stored on device)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={tempKey}
+                    onChange={(e) => setTempKey(e.target.value)}
+                    placeholder="Optional: gsk_..."
+                    aria-label="Groq API key"
+                    className="tactile-input flex-1 px-3 py-2 text-xs font-mono font-bold"
+                  />
+                  <button
+                    type="submit"
+                    className="tactile-btn-primary px-3.5 py-2 text-xs font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Save</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </motion.form>
         )}
       </AnimatePresence>
 
-      {/* Main Layout: Chat Column + Live Vault Context Sidebar */}
+      {/* Main Layout: Chat Column + Compact Context Sidebar */}
       <div className={compactDrawer ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-12 gap-6'}>
-        {/* Left/Main Chat Card */}
+        {/* Main Chat Card */}
         <div
           className={`${
             compactDrawer ? '' : 'lg:col-span-8'
@@ -425,8 +381,8 @@ export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: ()
         >
           {/* Starter Prompt Chips */}
           <div className="space-y-1.5">
-            <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#1F2937]/75">
-              Tap a Question to Ask Aynieee
+            <div className="text-xs font-bold text-[#1F2937]/80">
+              Suggested questions
             </div>
             <div className="flex flex-wrap gap-2">
               {AI_COACH_STARTER_PROMPTS.map((prompt) => (
@@ -435,7 +391,7 @@ export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: ()
                   type="button"
                   disabled={loading}
                   onClick={() => void handleSend(prompt)}
-                  className="px-3 py-1.5 rounded-2xl text-xs font-extrabold bg-white/85 hover:bg-white text-[#1F2937] border-2 border-white shadow-xs transition-transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50 text-left"
+                  className="px-3 py-1.5 rounded-2xl text-xs font-bold bg-white/85 hover:bg-white text-[#1F2937] border border-white shadow-xs transition-colors cursor-pointer disabled:opacity-50 text-left"
                 >
                   {prompt}
                 </button>
@@ -447,96 +403,43 @@ export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: ()
           <div
             className={`${
               compactDrawer ? 'max-h-[340px]' : 'min-h-[360px] max-h-[520px]'
-            } overflow-y-auto space-y-3.5 pr-1`}
+            } overflow-y-auto space-y-3 pr-1`}
           >
             {messages.map((msg) => {
               const isUser = msg.role === 'user';
               return (
-                <motion.div
+                <div
                   key={msg.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
                   className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[90%] sm:max-w-[84%] rounded-3xl p-4 border-3 border-white/85 shadow-sm ${
+                    className={`max-w-[90%] sm:max-w-[84%] rounded-3xl p-4 border-2 border-white/85 shadow-xs ${
                       isUser
                         ? 'clay-surface-peach text-[#1F2937]'
-                        : 'bg-white/94 text-[#1F2937]'
+                        : 'bg-white/95 text-[#1F2937]'
                     }`}
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1F2937]/80 flex items-center gap-1.5">
-                        <span>{isUser ? profile.avatarEmoji : '🌸'}</span>
-                        <span>{isUser ? profile.displayName : 'Aynieee'}</span>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="text-xs font-bold text-[#1F2937]/80">
+                        {isUser ? profile.displayName : 'Aynieee'}
                       </span>
                       {!isUser && msg.modelUsed && (
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                            msg.source === 'groq-cloud'
-                              ? 'bg-[#98FF98] text-[#065F46]'
-                              : 'bg-[#FFD1DC] text-[#9F1239]'
-                          }`}
-                        >
-                          {msg.source === 'groq-cloud' ? `Groq • ${msg.modelUsed}` : msg.modelUsed}
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E6E6FA] text-[#1F2937]">
+                          {msg.source === 'groq-cloud' ? 'Groq Cloud' : 'Local Engine'}
                         </span>
                       )}
                     </div>
                     {formatMessageText(msg.content)}
-
-                    {/* Smooth Workflow Quick Action Pills on Assistant Bubbles */}
-                    {!isUser && (
-                      <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-2.5 border-t border-black/10">
-                        <button
-                          type="button"
-                          onClick={() => openQuickAdd()}
-                          className="px-2.5 py-1 rounded-xl bg-[#FDBCB4]/70 hover:bg-[#FDBCB4] text-[11px] font-extrabold text-[#1F2937] inline-flex items-center gap-1 cursor-pointer transition-colors"
-                        >
-                          <Plus className="w-3 h-3" />
-                          <span>Log Expense</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveNav('squad');
-                            onCloseDrawer?.();
-                          }}
-                          className="px-2.5 py-1 rounded-xl bg-[#98FF98]/70 hover:bg-[#98FF98] text-[11px] font-extrabold text-[#1F2937] inline-flex items-center gap-1 cursor-pointer transition-colors"
-                        >
-                          <Users className="w-3 h-3" />
-                          <span>Friend Squads</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveNav('budgets');
-                            onCloseDrawer?.();
-                          }}
-                          className="px-2.5 py-1 rounded-xl bg-[#ADD8E6]/70 hover:bg-[#ADD8E6] text-[11px] font-extrabold text-[#1F2937] inline-flex items-center gap-1 cursor-pointer transition-colors"
-                        >
-                          <PieChart className="w-3 h-3" />
-                          <span>Budgets</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setProfileModalOpen(true)}
-                          className="px-2.5 py-1 rounded-xl bg-[#FFD1DC]/70 hover:bg-[#FFD1DC] text-[11px] font-extrabold text-[#1F2937] inline-flex items-center gap-1 cursor-pointer transition-colors"
-                        >
-                          <Coins className="w-3 h-3" />
-                          <span>Currency ({currency})</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
-                </motion.div>
+                </div>
               );
             })}
 
             {loading && (
               <div className="flex justify-start">
-                <div className="rounded-3xl px-4 py-3 bg-white/90 border-3 border-white/85 text-xs font-extrabold text-[#1F2937] inline-flex items-center gap-2 animate-pulse">
-                  <Sparkles className="w-4 h-4 text-[#6D28D9]" />
-                  <span>Aynieee is analyzing your {currency} vault numbers…</span>
+                <div className="rounded-2xl px-4 py-2.5 bg-white/90 border-2 border-white/85 text-xs font-bold text-[#1F2937] inline-flex items-center gap-2 animate-pulse">
+                  <Bot className="w-4 h-4 text-[#6D28D9]" />
+                  <span>Aynieee is reviewing your {currency} numbers...</span>
                 </div>
               </div>
             )}
@@ -549,159 +452,91 @@ export const AiCoachView: React.FC<{ compactDrawer?: boolean; onCloseDrawer?: ()
               e.preventDefault();
               void handleSend();
             }}
-            className="flex flex-col sm:flex-row gap-2.5 pt-2 border-t-2 border-white/60"
+            className="flex flex-col sm:flex-row gap-2.5 pt-2 border-t border-white/60"
           >
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={`Ask Aynieee anything about your ${currency} budget, savings, debt, or Friend Squad…`}
-              aria-label="Ask Aynieee AI Financial Bestie"
+              placeholder={`Ask Aynieee about your ${currency} budget, savings, debt, or Friend Squad...`}
+              aria-label="Ask Aynieee financial advisor"
               disabled={loading}
-              className="tactile-input flex-1 px-4 py-3 text-sm font-bold"
+              className="tactile-input flex-1 px-4 py-2.5 text-sm font-semibold"
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="button tactile-btn-primary !px-6 !py-3 !text-sm inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
+              className="button tactile-btn-primary !px-5 !py-2.5 !text-sm inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
             >
               <Send className="w-4 h-4" />
-              <span>Ask Aynieee</span>
+              <span>Send</span>
             </button>
           </form>
         </div>
 
-        {/* Right Column: Live Vault Context Cards (Full Tab View) */}
+        {/* Right Column: Clean Vault Summary (2 cards instead of 4 cluttered ones) */}
         {!compactDrawer && (
           <div className="lg:col-span-4 space-y-4">
-            {/* Personalized User Profile Card */}
-            <div className="card clay-surface-peach space-y-2.5">
+            <div className="card clay-surface-mint space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-[#1F2937]/80">
-                  Your Personalized Profile
+                <span className="text-xs font-bold text-[#1F2937]/80">
+                  Live Vault Context
                 </span>
-                <Bot className="w-4 h-4 text-[#1F2937]" />
+                <ShieldCheck className="w-4 h-4 text-[#065F46]" />
               </div>
-              <div className="flex items-center gap-3">
-                <span className="w-11 h-11 rounded-2xl bg-white/90 border-2 border-white flex items-center justify-center text-2xl shadow-xs">
-                  {profile.avatarEmoji}
-                </span>
-                <div>
-                  <div className="text-base font-extrabold text-[#1F2937]">
-                    {profile.displayName}
-                  </div>
-                  <div className="text-xs font-bold text-[#1F2937]/80">
-                    {profile.tagline}
-                  </div>
+              <div>
+                <div className="text-xs font-medium text-[#1F2937]/75">Safe to spend</div>
+                <div className="text-xl font-extrabold text-[#1F2937] tabular-nums">
+                  <Money amount={kpis.safeToSpend} currency={currency} privacyMask={privacyMask} />
                 </div>
               </div>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                <span className="px-2.5 py-1 rounded-xl bg-white/80 text-[11px] font-extrabold text-[#1F2937]">
-                  Currency: {CURRENCY_METADATA[currency].symbol} {currency}
-                </span>
-                <span className="px-2.5 py-1 rounded-xl bg-white/80 text-[11px] font-extrabold text-[#1F2937]">
-                  Goal: {profile.monthlySavingsGoalPct}% savings
-                </span>
+              <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                <div className="p-2.5 rounded-xl bg-white/80">
+                  <div className="text-[11px] font-medium text-[#1F2937]/75">Health Score</div>
+                  <div className="font-extrabold text-[#1F2937] tabular-nums">
+                    {health.score}/100 ({health.grade})
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-white/80">
+                  <div className="text-[11px] font-medium text-[#1F2937]/75">Savings Rate</div>
+                  <div className="font-extrabold text-[#1F2937] tabular-nums">
+                    {kpis.savingsRate.toFixed(1)}%
+                  </div>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setProfileModalOpen(true)}
-                className="tactile-btn w-full py-2 text-xs font-extrabold cursor-pointer mt-1"
+                className="tactile-btn w-full py-2 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Edit Profile, Currency &amp; Vibe
-              </button>
-            </div>
-
-            <div className="card clay-surface-mint space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-[#1F2937]/80">
-                  Live Context Fed to Aynieee
-                </span>
-                <ShieldCheck className="w-4 h-4 text-[#065F46]" />
-              </div>
-              <div className="text-xl font-extrabold text-[#1F2937] tabular-nums">
-                Safe-to-Spend:{' '}
-                <Money amount={kpis.safeToSpend} currency={currency} privacyMask={privacyMask} />
-              </div>
-              <div className="text-xs font-bold text-[#1F2937]/85">
-                Health Score: <strong>{health.score}/100 ({health.grade})</strong> • Savings Rate:{' '}
-                <strong>{kpis.savingsRate.toFixed(1)}%</strong> (Goal: {profile.monthlySavingsGoalPct}%)
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  void handleSend(
-                    `Aynieee, with my ${kpis.savingsRate.toFixed(1)}% savings rate and ${health.score}/100 health score, what is the #1 move I should make this week?`
-                  )
-                }
-                className="tactile-btn w-full py-2 text-xs font-extrabold cursor-pointer mt-1"
-              >
-                Ask Aynieee: #1 Move This Week
+                <User className="w-3.5 h-3.5" />
+                <span>Edit Profile &amp; Currency ({currency})</span>
               </button>
             </div>
 
             {primarySquad && squadBoard && (
               <div className="card clay-surface-pink space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#1F2937]/80">
-                    Active Friend Squad Share
+                  <span className="text-xs font-bold text-[#1F2937]/80">
+                    Active Friend Squad
                   </span>
                   <Users className="w-4 h-4 text-[#9F1239]" />
                 </div>
                 <div className="text-base font-extrabold text-[#1F2937]">
-                  {primarySquad.emoji} {primarySquad.name}
+                  {primarySquad.name}
                 </div>
-                <div className="text-xs font-bold text-[#1F2937]/85">
+                <div className="text-xs font-medium text-[#1F2937]/85">
                   {squadBoard.headline}
                 </div>
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void handleSend(
-                        `Aynieee, how can we reach our ${primarySquad.name} target faster and keep my #1 share lead?`
-                      )
-                    }
-                    className="tactile-btn flex-1 py-2 text-xs font-extrabold cursor-pointer"
-                  >
-                    Ask Squad Strategy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveNav('squad')}
-                    className="tactile-btn-primary px-3 py-2 text-xs font-extrabold cursor-pointer"
-                  >
-                    Open Squad
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveNav('squad')}
+                  className="tactile-btn w-full py-2 text-xs font-bold cursor-pointer mt-1"
+                >
+                  Open Friend Squads
+                </button>
               </div>
             )}
-
-            <div className="card clay-surface-blue space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-[#1F2937]/80">
-                  Debt &amp; Runway Checkup
-                </span>
-                <TrendingUp className="w-4 h-4 text-[#1E40AF]" />
-              </div>
-              <div className="text-xs font-bold text-[#1F2937]/85">
-                Liquid Cash:{' '}
-                <Money amount={kpis.liquidCash} currency={currency} privacyMask={privacyMask} /> •
-                Total Debt:{' '}
-                <Money amount={kpis.totalDebt} currency={currency} privacyMask={privacyMask} />
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  void handleSend(
-                    'Aynieee, compare Snowball vs Avalanche for my current debt and liquid cash runway.'
-                  )
-                }
-                className="tactile-btn w-full py-2 text-xs font-extrabold cursor-pointer"
-              >
-                Ask Debt &amp; Runway Advice
-              </button>
-            </div>
           </div>
         )}
       </div>
@@ -716,14 +551,14 @@ export const FloatingAiCoachWidget: React.FC = () => {
   if (activeNav === 'coach') return null;
 
   return (
-    <div className="no-print fixed bottom-5 left-5 z-40">
+    <div className="no-print fixed bottom-5 right-5 z-40">
       <AnimatePresence>
         {open && (
           <motion.div
             initial={{ opacity: 0, y: 16, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.95 }}
-            className="mb-3 w-[92vw] max-w-[560px] tactile-card-elevated p-4 sm:p-5 bg-[var(--bg-surface)]"
+            className="mb-3 w-[92vw] max-w-[540px] tactile-card-elevated p-4 sm:p-5 bg-[var(--bg-surface)]"
           >
             <AiCoachView compactDrawer onCloseDrawer={() => setOpen(false)} />
           </motion.div>
@@ -733,12 +568,11 @@ export const FloatingAiCoachWidget: React.FC = () => {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Open Aynieee AI Financial Bestie"
-        className="tactile-btn-primary px-4 py-3 rounded-full inline-flex items-center gap-2 text-xs sm:text-sm font-extrabold cursor-pointer shadow-lg"
+        aria-label="Open Aynieee financial advisor"
+        className="tactile-btn-primary px-4 py-2.5 rounded-full inline-flex items-center gap-2 text-xs sm:text-sm font-extrabold cursor-pointer shadow-lg"
       >
-        <span className="text-base leading-none">🌸</span>
-        <MessageSquareHeart className="w-4 h-4 text-[#1F2937]" />
-        <span>{open ? 'Hide Aynieee' : 'Ask Aynieee AI'}</span>
+        <Bot className="w-4 h-4 text-[#1F2937]" />
+        <span>{open ? 'Hide Aynieee' : 'Ask Aynieee'}</span>
       </button>
     </div>
   );

@@ -596,7 +596,7 @@ export const RecurringView: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-1.5 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+          <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-semibold text-[var(--text-muted)]">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
               <div key={d} className="py-1">
                 {d}

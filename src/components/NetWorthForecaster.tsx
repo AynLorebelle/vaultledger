@@ -20,7 +20,6 @@ import {
   Trash2,
   Repeat,
   Calendar,
-  Sparkles,
 } from 'lucide-react';
 import type {
   CurrencyCode,
@@ -164,7 +163,7 @@ const ForecastTooltip: React.FC<ForecastTooltipProps> = ({
           style={{ borderTop: `1px solid ${chartTheme.tooltipBorder}` }}
         >
           <div
-            className="text-[10px] font-semibold uppercase tracking-wider"
+            className="text-xs font-semibold"
             style={{ color: chartTheme.tooltipMuted }}
           >
             Milestones
@@ -399,7 +398,7 @@ export const NetWorthForecaster: React.FC<NetWorthForecasterProps> = ({
         {/* KPI 1: Projected Net Worth */}
         <div className="tactile-card p-5 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="text-xs font-semibold text-[var(--text-muted)]">
               Projected Net Worth
             </span>
             <div
@@ -437,7 +436,7 @@ export const NetWorthForecaster: React.FC<NetWorthForecasterProps> = ({
         {/* KPI 2: What-If Delta vs Baseline */}
         <div className="tactile-card p-5 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="text-xs font-semibold text-[var(--text-muted)]">
               What-If Delta vs Baseline
             </span>
             <div
@@ -511,7 +510,7 @@ export const NetWorthForecaster: React.FC<NetWorthForecasterProps> = ({
         {/* KPI 3: Projected Monthly Cashflow */}
         <div className="tactile-card p-5 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="text-xs font-semibold text-[var(--text-muted)]">
               Projected Monthly Cashflow
             </span>
             <span
@@ -1091,7 +1090,7 @@ export const NetWorthForecaster: React.FC<NetWorthForecasterProps> = ({
           {/* Milestones List */}
           {milestones.length === 0 ? (
             <div className="rounded-xl border border-dashed border-[var(--border-strong)] px-4 py-7 text-center">
-              <Sparkles className="w-5 h-5 mx-auto mb-2 text-[var(--text-muted)]" />
+              <Flag className="w-5 h-5 mx-auto mb-2 text-[var(--text-muted)]" />
               <p className="text-xs font-semibold text-[var(--text-secondary)]">
                 No financial milestones yet
               </p>

@@ -14,7 +14,6 @@ import {
   RefreshCw,
   Save,
   Trash2,
-  Sparkles,
   Eye,
   EyeOff,
 } from 'lucide-react';
@@ -541,7 +540,7 @@ export const ImportExportModal: React.FC = () => {
                     color: 'var(--accent-warning)',
                   }}
                 >
-                  <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                  <FileSpreadsheet className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Try Sample Bank CSV</span>
                 </button>
               </div>

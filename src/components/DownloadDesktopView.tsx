@@ -5,7 +5,6 @@ import {
   FolderOpen,
   HardDrive,
   ShieldCheck,
-  Sparkles,
   CheckCircle2,
   ExternalLink,
   RefreshCw,
@@ -245,7 +244,7 @@ export const DownloadDesktopView: React.FC = () => {
           {storageInfo && (
             <div className="mt-5 pt-4 border-t border-[var(--border-hairline)] grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
               <div className="tactile-well p-3">
-                <div className="text-[var(--text-muted)] font-semibold uppercase tracking-wider text-[10px]">
+                <div className="text-[var(--text-muted)] font-semibold text-xs">
                   AYNLYTICS Vault File
                 </div>
                 <div
@@ -256,7 +255,7 @@ export const DownloadDesktopView: React.FC = () => {
                 </div>
               </div>
               <div className="tactile-well p-3">
-                <div className="text-[var(--text-muted)] font-semibold uppercase tracking-wider text-[10px]">
+                <div className="text-[var(--text-muted)] font-semibold text-xs">
                   Auto-Backup Folder
                 </div>
                 <div
@@ -267,7 +266,7 @@ export const DownloadDesktopView: React.FC = () => {
                 </div>
               </div>
               <div className="tactile-well p-3">
-                <div className="text-[var(--text-muted)] font-semibold uppercase tracking-wider text-[10px]">
+                <div className="text-[var(--text-muted)] font-semibold text-xs">
                   Receipts Storage
                 </div>
                 <div
@@ -325,7 +324,7 @@ export const DownloadDesktopView: React.FC = () => {
                   </>
                 ) : releaseStatus === 'loaded' ? (
                   <>
-                    <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-positive)' }} />
+                    <CheckCircle2 className="w-3.5 h-3.5" style={{ color: 'var(--accent-positive)' }} />
                     Latest release {resolvedAssets.version} ready
                   </>
                 ) : (

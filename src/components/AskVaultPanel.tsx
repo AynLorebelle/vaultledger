@@ -227,7 +227,7 @@ export const AskVaultPanel: React.FC<AskVaultPanelProps> = ({
             {hasPrimaryStat && (
               <div className="space-y-0.5">
                 {answer.primaryLabel && (
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  <div className="text-xs font-semibold text-[var(--text-muted)]">
                     {answer.primaryLabel}
                   </div>
                 )}

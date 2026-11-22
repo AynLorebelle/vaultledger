@@ -551,7 +551,7 @@ export const CommandPalette: React.FC = () => {
               }`}
             >
               <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                <span className="text-xs font-semibold text-[var(--text-muted)]">
                   Ask Vault · Instant Offline Answer
                 </span>
                 {mode === 'all' && (
@@ -606,7 +606,7 @@ export const CommandPalette: React.FC = () => {
                   return (
                     <React.Fragment key={item.id}>
                       {showHeader && (
-                        <div className="px-4 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                        <div className="px-4 pt-2.5 pb-1 text-xs font-semibold text-[var(--text-muted)]">
                           {item.group}
                         </div>
                       )}

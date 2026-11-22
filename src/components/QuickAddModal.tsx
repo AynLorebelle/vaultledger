@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Sparkles,
   Calculator,
   Split,
   Plus,
@@ -493,7 +492,7 @@ export const QuickAddModal: React.FC = () => {
             }}
           >
             <div className="flex items-center gap-2">
-              <Sparkles
+              <Plus
                 className="w-4 h-4 shrink-0"
                 style={{ color: 'var(--accent-primary-text)' }}
                 aria-hidden="true"

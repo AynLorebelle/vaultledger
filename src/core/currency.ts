@@ -187,16 +187,23 @@ export function normalizeVaultData(vault: VaultData): VaultData {
   const defaultProfile = {
     displayName: 'Ayn Lorebelle',
     tagline: 'Smart Saver & Co-Op Squad Leader',
-    avatarEmoji: '🌸',
+    avatarEmoji: 'AL',
     clayAccent: '#FDBCB4',
     monthlySavingsGoalPct: 25,
     aynieeeTone: 'conyo_bestie' as const,
   };
 
+  const rawEmoji = existingSettings?.profile?.avatarEmoji;
+  const sanitizedAvatar =
+    typeof rawEmoji === 'string' && /^[a-zA-Z0-9_-]{1,20}$/.test(rawEmoji.trim())
+      ? rawEmoji.trim()
+      : defaultProfile.avatarEmoji;
+
   const profile = existingSettings?.profile
     ? {
         ...defaultProfile,
         ...existingSettings.profile,
+        avatarEmoji: sanitizedAvatar,
       }
     : defaultProfile;
 

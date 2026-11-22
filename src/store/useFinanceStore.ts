@@ -360,8 +360,8 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
 
       if (stored && Array.isArray(stored.accounts) && Array.isArray(stored.categories)) {
         const normalized = normalizeVaultData(stored);
-        if ((stored.schemaVersion ?? 1) < 2) {
-          normalized.schemaVersion = 2;
+        if ((stored.schemaVersion ?? 1) < 3) {
+          normalized.schemaVersion = 3;
           normalized.settings = {
             ...normalized.settings,
             theme: 'light',
@@ -370,6 +370,15 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
             normalized.savingsSquads = createDefaultSavingsSquads(
               normalized.settings.baseCurrency,
             );
+          } else {
+            normalized.savingsSquads = normalized.savingsSquads.map((pot, idx) => ({
+              ...pot,
+              emoji: /^[a-zA-Z0-9_-]+$/.test((pot.emoji || '').trim())
+                ? pot.emoji.trim()
+                : idx === 0
+                  ? 'plane'
+                  : 'home',
+            }));
           }
           shouldPersistMigrated = true;
         }
@@ -1006,7 +1015,7 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
       const newPot: SavingsSquadPot = {
         id: generateId('squad'),
         name: input.name.trim() || 'Besties Shared Pot',
-        emoji: input.emoji.trim() || '🐷',
+        emoji: input.emoji.trim() || 'piggy-bank',
         targetAmount: roundMoney(Math.max(100, input.targetAmount)),
         currency: input.currency,
         roomCode: generateRoomCode(),
@@ -1309,7 +1318,7 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
         const currentProfile: UserProfile = {
           displayName: prev.settings.profile?.displayName || 'Ayn Lorebelle',
           tagline: prev.settings.profile?.tagline || 'Smart Saver & Co-Op Squad Leader',
-          avatarEmoji: prev.settings.profile?.avatarEmoji || '🌸',
+          avatarEmoji: prev.settings.profile?.avatarEmoji || 'AL',
           clayAccent: prev.settings.profile?.clayAccent || '#FDBCB4',
           monthlySavingsGoalPct: prev.settings.profile?.monthlySavingsGoalPct ?? 25,
           aynieeeTone: prev.settings.profile?.aynieeeTone || 'conyo_bestie',

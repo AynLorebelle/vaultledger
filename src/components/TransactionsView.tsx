@@ -8,7 +8,6 @@ import {
   Paperclip,
   Split,
   RotateCcw,
-  Sparkles,
   X,
   Tag,
   Check,
@@ -16,6 +15,7 @@ import {
   Plus,
   Inbox,
   ArrowRightLeft,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { filterTransactionsByRange } from '../core/analytics';
@@ -589,7 +589,7 @@ export const TransactionsView: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-[var(--border-hairline)] bg-[var(--bg-subtle)] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              <tr className="border-b border-[var(--border-hairline)] bg-[var(--bg-subtle)] text-xs font-semibold text-[var(--text-muted)]">
                 <th className="py-3 pl-4 pr-2 w-10">
                   <input
                     type="checkbox"
@@ -822,7 +822,7 @@ export const TransactionsView: React.FC = () => {
                               title="1-click Create Rule for this payee"
                               className={`p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-primary-text)] hover:bg-[var(--accent-primary-soft)] transition-colors cursor-pointer ${iconBtnFocus}`}
                             >
-                              <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                              <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                           )}
                           <button
