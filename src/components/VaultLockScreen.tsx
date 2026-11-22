@@ -76,10 +76,10 @@ export const VaultLockScreen: React.FC = () => {
             <Lock className="w-6 h-6" aria-hidden="true" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
-            VaultLedger is Locked
+            AYNLYTICS is Locked
           </h1>
           <p className="text-sm text-[var(--text-muted)] mt-1.5 max-w-xs leading-relaxed">
-            Enter your local passcode to unlock your personal finance vault.
+            Enter your local passcode to unlock your AYNLYTICS personal finance vault.
           </p>
         </div>
 

@@ -59,7 +59,7 @@ export const DownloadDesktopView: React.FC = () => {
   const showToast = useFinanceStore((s) => s.showToast);
 
   const isDesktop = Boolean(window.vaultDesktop?.isDesktop);
-  const desktopVersion = window.vaultDesktop?.appVersion ?? '1.1.0';
+  const desktopVersion = window.vaultDesktop?.appVersion ?? '2.0.0';
   const detectedOS = useMemo(() => detectUserOS(), []);
 
   const [release, setRelease] = useState<GitHubRelease | null>(null);
@@ -115,7 +115,7 @@ export const DownloadDesktopView: React.FC = () => {
     const linuxAppImage = findAsset((n) => n.endsWith('.appimage'));
 
     return {
-      version: release?.tag_name ?? 'v1.1.0',
+      version: release?.tag_name ?? 'v2.0.0',
       winInstaller,
       winPortable,
       macDmg,
@@ -189,34 +189,36 @@ export const DownloadDesktopView: React.FC = () => {
   ];
 
   const capabilityBadges = [
-    { icon: WifiOff, label: '100% Airplane-Mode Ready' },
-    { icon: HardDrive, label: 'Direct Local Disk Storage' },
-    { icon: RefreshCw, label: 'Automatic Rolling Backups' },
-    { icon: Lock, label: 'AES-256-GCM Encrypted Snapshots' },
+    { icon: WifiOff, label: '100% Airplane-Mode Ready', clayClass: 'clay-surface-peach' },
+    { icon: HardDrive, label: 'Direct Local Disk Storage', clayClass: 'clay-surface-mint' },
+    { icon: RefreshCw, label: 'Automatic Rolling Backups', clayClass: 'clay-surface-blue' },
+    { icon: Lock, label: 'AES-256-GCM Encrypted Snapshots', clayClass: 'clay-surface-peach' },
   ];
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header Banner (Clean Tactile Card, no decorative gradient) */}
+      {/* Header Banner */}
       {isDesktop ? (
         <div className="tactile-card border-l-4 border-l-[var(--accent-positive)] p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-2">
-              <div
-                className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold"
-                style={{
-                  backgroundColor: 'var(--accent-positive-soft)',
-                  color: 'var(--accent-positive)',
-                }}
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Native Desktop App Active</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="clay-surface-mint inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Native Desktop App Active</span>
+                </span>
+                <span className="clay-surface-peach inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold">
+                  <span>AYNLYTICS v1.1.0 Desktop &amp; Offline Edition</span>
+                </span>
+                <span className="clay-surface-blue inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold">
+                  <span>3D Claymorphism UI</span>
+                </span>
               </div>
               <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight tabular-nums">
-                You&apos;re running VaultLedger Desktop v{desktopVersion} — 100% Offline
+                You&apos;re running AYNLYTICS Desktop v{desktopVersion} — 100% Offline
               </h1>
               <p className="text-sm text-[var(--text-secondary)] max-w-2xl">
-                Your financial ledger, receipts, and rolling snapshots are stored directly on your local disk with zero third-party cloud dependencies.
+                Your financial ledger, Friend Savings Squads, receipts, and rolling snapshots are stored directly on your local disk with zero third-party cloud dependencies.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
@@ -244,7 +246,7 @@ export const DownloadDesktopView: React.FC = () => {
             <div className="mt-5 pt-4 border-t border-[var(--border-hairline)] grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
               <div className="tactile-well p-3">
                 <div className="text-[var(--text-muted)] font-semibold uppercase tracking-wider text-[10px]">
-                  Vault Ledger File
+                  AYNLYTICS Vault File
                 </div>
                 <div
                   className="mt-1 font-mono text-[var(--text-primary)] truncate"
@@ -281,25 +283,27 @@ export const DownloadDesktopView: React.FC = () => {
       ) : (
         <div className="tactile-card border-l-4 border-l-[var(--accent-primary)] p-6 md:p-7">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-            <div className="space-y-2">
-              <div
-                className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold tabular-nums"
-                style={{
-                  backgroundColor: 'var(--accent-primary-soft)',
-                  color: 'var(--accent-primary-text)',
-                }}
-              >
-                <Laptop className="w-3.5 h-3.5" />
-                <span>
-                  Native Offline Desktop App · {resolvedAssets.version}
-                  {detectedOS !== 'unknown' && ` · Detected ${detectedOS.toUpperCase()}`}
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="clay-surface-peach inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold tabular-nums">
+                  <Laptop className="w-3.5 h-3.5" />
+                  <span>AYNLYTICS v1.1.0 Desktop &amp; Offline Edition</span>
+                </span>
+                <span className="clay-surface-mint inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold tabular-nums">
+                  <span>
+                    {resolvedAssets.version}
+                    {detectedOS !== 'unknown' && ` · Detected ${detectedOS.toUpperCase()}`}
+                  </span>
+                </span>
+                <span className="clay-surface-blue inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold">
+                  <span>3D Claymorphism + Friend Squads</span>
                 </span>
               </div>
               <h1 className="text-2xl md:text-3xl font-bold text-[var(--text-primary)] tracking-tight">
-                Download VaultLedger for Desktop
+                Download AYNLYTICS for Desktop
               </h1>
               <p className="text-sm text-[var(--text-secondary)] max-w-2xl">
-                Keep your entire financial life in a rock-solid local file on your computer. No browser storage eviction, native file dialogs, automatic rolling backups, and 100% airplane-mode operation.
+                Keep your entire financial life and Friend Savings Squads in a rock-solid local file on your computer. No browser storage eviction, native file dialogs, automatic rolling backups, and 100% airplane-mode operation.
               </p>
             </div>
             <div className="flex flex-col items-start md:items-end gap-2 shrink-0">
@@ -332,18 +336,15 @@ export const DownloadDesktopView: React.FC = () => {
           </div>
 
           {/* Offline Capability Badges */}
-          <div className="mt-5 pt-4 border-t border-[var(--border-hairline)] flex flex-wrap gap-2">
+          <div className="mt-5 pt-4 border-t border-[var(--border-hairline)] flex flex-wrap gap-2.5">
             {capabilityBadges.map((cap) => {
               const CapIcon = cap.icon;
               return (
                 <span
                   key={cap.label}
-                  className="tactile-well inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)]"
+                  className={`${cap.clayClass} inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold`}
                 >
-                  <CapIcon
-                    className="w-3.5 h-3.5 shrink-0"
-                    style={{ color: 'var(--accent-primary-text)' }}
-                  />
+                  <CapIcon className="w-3.5 h-3.5 shrink-0" />
                   <span>{cap.label}</span>
                 </span>
               );
@@ -472,7 +473,7 @@ export const DownloadDesktopView: React.FC = () => {
             },
             {
               step: '02',
-              title: 'Install VaultLedger Desktop',
+              title: 'Install AYNLYTICS Desktop',
               desc: 'Run the Windows, macOS, or Linux desktop app. No account creation or login required.',
             },
             {

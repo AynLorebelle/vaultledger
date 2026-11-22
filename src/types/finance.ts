@@ -16,6 +16,7 @@ export type NavSection =
   | 'budgets'
   | 'recurring'
   | 'goals'
+  | 'squad'
   | 'forecast'
   | 'accounts'
   | 'rules'
@@ -160,6 +161,60 @@ export interface VaultSettings {
   budgetRolloverAdjustments: Record<string, number>; // categoryId -> rollover carry-in amount
 }
 
+export interface SquadMember {
+  id: string;
+  name: string;
+  role: 'owner' | 'friend';
+  clayColor: string; // e.g. #FDBCB4, #ADD8E6, #98FF98, #FFD1DC, #E6E6FA, #B5EAD7
+  avatarInitials: string;
+}
+
+export interface SquadContribution {
+  id: string;
+  memberId: string;
+  amount: number;
+  date: string; // ISO YYYY-MM-DD
+  note: string;
+  createdAt: string;
+}
+
+export interface SavingsSquadPot {
+  id: string;
+  name: string;
+  emoji: string;
+  targetAmount: number;
+  currency: CurrencyCode;
+  roomCode: string;
+  members: SquadMember[];
+  contributions: SquadContribution[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SquadLeaderboardEntry {
+  rank: number;
+  member: SquadMember;
+  totalContributed: number;
+  sharePercent: number; // % of totalSaved (0..100)
+  targetSharePercent: number; // % of targetAmount (0..100)
+  contributionCount: number;
+  largestSingleDeposit: number;
+  lastContributionDate: string | null;
+  leadOverNext: number; // positive dollar/peso lead over rank+1
+  shareGapPercent: number; // percentage-point share lead over rank+1
+  isTopSaver: boolean;
+}
+
+export interface SquadLeaderboardResult {
+  totalSaved: number;
+  targetAmount: number;
+  progressPercent: number;
+  remainingAmount: number;
+  entries: SquadLeaderboardEntry[];
+  topSaver: SquadLeaderboardEntry | null;
+  headline: string;
+}
+
 export interface VaultData {
   schemaVersion: number;
   updatedAt: string;
@@ -168,6 +223,7 @@ export interface VaultData {
   transactions: Transaction[];
   recurringBills: RecurringBill[];
   savingsGoals: SavingsGoal[];
+  savingsSquads?: SavingsSquadPot[];
   rules: CategoryRule[];
   importPresets: BankImportPreset[];
   forecastMilestones?: ForecastMilestone[];

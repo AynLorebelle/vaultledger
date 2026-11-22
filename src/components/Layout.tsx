@@ -5,6 +5,7 @@ import {
   PieChart,
   CalendarClock,
   Target,
+  Users,
   LineChart,
   Landmark,
   SlidersHorizontal,
@@ -83,6 +84,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   }> = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     {
+      id: 'squad',
+      label: 'Friend Squads',
+      icon: Users,
+      badge: 'Co-Op',
+      badgeTone: 'positive',
+    },
+    {
       id: 'transactions',
       label: 'Transactions',
       icon: ArrowLeftRight,
@@ -136,7 +144,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     if (active) {
       return {
         backgroundColor: '#FFFFFF',
-        color: '#143B2F',
+        color: '#1F2937',
+        border: '1px solid rgba(31, 41, 55, 0.12)',
       };
     }
     if (tone === 'warning') {
@@ -167,28 +176,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const renderSidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Brand Header */}
-      <div className="px-4 h-16 flex items-center justify-between border-b border-[var(--border-hairline)] shrink-0">
+      <div className="px-4 h-16 flex items-center justify-between border-b-2 border-white/65 dark:border-white/15 shrink-0">
         <button
           type="button"
           onClick={() => handleNavClick('dashboard')}
-          aria-label="Go to VaultLedger Dashboard"
+          aria-label="Go to AYNLYTICS Dashboard"
           className="flex items-center gap-2.5 text-left group cursor-pointer rounded-xl"
         >
           <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+            className="w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 border-[3px] border-white/75"
             style={{
-              backgroundColor: 'var(--accent-primary)',
-              boxShadow: 'var(--shadow-btn)',
+              backgroundColor: 'var(--clay-peach)',
+              boxShadow: 'var(--clay-shadow-sm)',
             }}
           >
-            <ShieldCheck className="w-4.5 h-4.5 text-white" aria-hidden="true" />
+            <ShieldCheck className="w-4.5 h-4.5 text-[#1F2937]" aria-hidden="true" />
           </div>
           <div>
-            <div className="text-sm font-bold tracking-tight text-[var(--text-primary)] leading-tight">
-              VaultLedger
+            <div className="text-sm font-extrabold tracking-tight text-[var(--text-primary)] leading-tight">
+              AYNLYTICS
             </div>
-            <div className="text-[10px] font-medium text-[var(--text-muted)] leading-tight">
-              Offline Finance Studio
+            <div className="text-[10px] font-bold text-[var(--text-muted)] leading-tight">
+              Clay Finance &amp; Friend Squads
             </div>
           </div>
         </button>
@@ -204,7 +213,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* Navigation */}
-      <nav aria-label="Primary navigation" className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+      <nav aria-label="Primary navigation" className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = activeNav === item.id;
@@ -214,16 +223,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               type="button"
               onClick={() => handleNavClick(item.id)}
               aria-current={active ? 'page' : undefined}
-              className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+              className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-2xl text-sm transition-all cursor-pointer ${
                 active
-                  ? 'bg-[var(--accent-primary)] text-white shadow-[var(--shadow-btn)]'
-                  : 'bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
+                  ? 'bg-[var(--clay-peach)] text-[#1F2937] font-extrabold border-[3px] border-white/75 shadow-[var(--clay-shadow-sm)]'
+                  : 'bg-transparent font-semibold text-[var(--text-secondary)] border-[3px] border-transparent hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
               }`}
             >
               <span className="flex items-center gap-2.5 truncate">
                 <Icon
                   className={`w-4 h-4 shrink-0 ${
-                    active ? 'text-white' : 'text-[var(--text-muted)]'
+                    active ? 'text-[#1F2937]' : 'text-[var(--text-muted)]'
                   }`}
                 />
                 <span className="truncate">{item.label}</span>
@@ -231,7 +240,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               {item.badge !== undefined && (
                 <span
                   style={getBadgeStyle(item.badgeTone, active)}
-                  className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums shrink-0"
+                  className="px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold tabular-nums shrink-0"
                 >
                   {item.badge}
                 </span>
@@ -378,7 +387,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen flex bg-[var(--bg-canvas)] text-[var(--text-primary)] transition-colors">
       {/* Desktop Left Sidebar */}
-      <aside className="no-print hidden lg:flex flex-col w-60 shrink-0 border-r border-[var(--border-hairline)] bg-[var(--bg-surface)] sticky top-0 h-screen">
+      <aside className="no-print hidden lg:flex flex-col w-60 shrink-0 border-r-4 border-white/65 dark:border-white/15 bg-[var(--bg-surface)] shadow-[var(--clay-shadow-sm)] sticky top-0 h-screen">
         {renderSidebarContent()}
       </aside>
 
@@ -392,7 +401,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         >
           <aside
             aria-label="Mobile navigation"
-            className="w-68 max-w-[82vw] h-full bg-[var(--bg-surface)] border-r border-[var(--border-strong)]"
+            className="w-68 max-w-[82vw] h-full bg-[var(--bg-surface)] border-r-4 border-white/65 dark:border-white/20"
             style={{ boxShadow: 'var(--shadow-elevated)' }}
           >
             {renderSidebarContent()}
@@ -403,7 +412,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main Column */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <header className="no-print sticky top-0 z-30 h-16 px-4 lg:px-6 flex items-center justify-between gap-3 bg-[var(--bg-surface)] border-b border-[var(--border-hairline)]">
+        <header className="no-print sticky top-0 z-30 h-16 px-4 lg:px-6 flex items-center justify-between gap-3 bg-[var(--bg-surface)] border-b-4 border-white/65 dark:border-white/15 shadow-[var(--clay-shadow-sm)]">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
@@ -560,11 +569,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               type="button"
               onClick={() => openQuickAdd()}
               aria-label="Add Expense (Shortcut N)"
-              className="tactile-btn-primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer"
+              className="tactile-btn-primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold text-[#1F2937] border-[3px] border-white/75 cursor-pointer"
             >
-              <Plus className="w-4 h-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Add Expense</span>
-              <kbd className="hidden sm:inline-block ml-0.5 px-1.5 py-0.5 rounded bg-white/15 text-[10px] font-mono text-white/90">
+              <Plus className="w-4 h-4 text-[#1F2937]" aria-hidden="true" />
+              <span className="hidden sm:inline text-[#1F2937]">Add Expense</span>
+              <kbd className="hidden sm:inline-block ml-0.5 px-1.5 py-0.5 rounded bg-white/70 text-[10px] font-mono font-bold text-[#1F2937]">
                 N
               </kbd>
             </button>

@@ -204,49 +204,49 @@ export interface ChartTheme {
 export function getChartTheme(isDark: boolean): ChartTheme {
   if (isDark) {
     return {
-      grid: '#2C313A',
-      tick: '#9BA3AE',
-      tooltipBg: '#1A1D21',
-      tooltipBorder: '#2C313A',
-      tooltipText: '#F3F4F6',
-      tooltipMuted: '#9BA3AE',
-      primary: '#2DD4BF',
-      primaryFill: 'rgba(45, 212, 191, 0.16)',
-      secondary: '#60A5FA',
-      positive: '#34D399',
-      danger: '#FB7185',
-      warning: '#F59E0B',
-      baseline: '#9BA3AE',
+      grid: '#3B3259',
+      tick: '#C4B5FD',
+      tooltipBg: '#2F2847',
+      tooltipBorder: '#5B4B8A',
+      tooltipText: '#F9FAFB',
+      tooltipMuted: '#C4B5FD',
+      primary: '#FDBCB4',
+      primaryFill: 'rgba(253, 188, 180, 0.16)',
+      secondary: '#ADD8E6',
+      positive: '#98FF98',
+      danger: '#FFD1DC',
+      warning: '#FCD34D',
+      baseline: '#C4B5FD',
     };
   }
   return {
-    grid: '#DDD9CE',
-    tick: '#57606A',
-    tooltipBg: '#FFFFFF',
-    tooltipBorder: '#DDD9CE',
-    tooltipText: '#14171A',
-    tooltipMuted: '#57606A',
-    primary: '#1B4D3E',
-    primaryFill: 'rgba(27, 77, 62, 0.14)',
-    secondary: '#1D4ED8',
-    positive: '#0F766E',
-    danger: '#BE123C',
-    warning: '#B45309',
-    baseline: '#57606A',
+    grid: '#DFD8F5',
+    tick: '#4B5563',
+    tooltipBg: '#FAF6FF',
+    tooltipBorder: '#D8B4FE',
+    tooltipText: '#1F2937',
+    tooltipMuted: '#4B5563',
+    primary: '#7C3AED',
+    primaryFill: 'rgba(124, 58, 237, 0.14)',
+    secondary: '#EC4899',
+    positive: '#059669',
+    danger: '#E11D48',
+    warning: '#D97706',
+    baseline: '#4B5563',
   };
 }
 
 export const PALETTE_COLORS = [
-  '#1B4D3E', // treasury pine
-  '#0F766E', // deep teal
-  '#1D4ED8', // cobalt
-  '#B45309', // ochre amber
-  '#BE123C', // crimson rose
-  '#6D28D9', // royal violet
-  '#0E7490', // ocean cyan
-  '#9D174D', // plum berry
-  '#C2410C', // burnt sienna
-  '#475569', // ledger slate
+  '#EC4899',
+  '#8B5CF6',
+  '#10B981',
+  '#0EA5E9',
+  '#F97316',
+  '#E11D48',
+  '#6366F1',
+  '#14B8A6',
+  '#D97706',
+  '#4B5563',
 ];
 
 interface ModalProps {

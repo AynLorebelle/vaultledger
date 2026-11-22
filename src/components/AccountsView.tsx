@@ -262,7 +262,7 @@ export const AccountsView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
-            Accounts &amp; Vault Settings
+            AYNLYTICS Accounts &amp; Vault Settings
           </h1>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
             Track liquid cash, credit utilization, investments, loans, offline FX rates, and local security preferences

@@ -1,5 +1,5 @@
-// VaultLedger Offline-First Service Worker
-const CACHE_NAME = 'vaultledger-cache-v2';
+// AYNLYTICS Offline-First Service Worker
+const CACHE_NAME = 'aynlytics-clay-cache-v3';
 const SHELL_ASSETS = [
   './',
   './index.html',

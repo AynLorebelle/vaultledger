@@ -2,73 +2,106 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ============================================================================
+   AYNLYTICS 2.0 — 3D Claymorphism Design System
+   Soft clay / plasticine 3D surfaces, chunky 4px translucent rims,
+   inner + outer clay shadows, playful pastel palette, WCAG AA contrast.
+   ============================================================================ */
+
 :root {
-  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-sans: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Cascadia Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --bg-canvas: #F6F5F1;
-  --bg-surface: #FFFFFF;
-  --bg-surface-hover: #FAF9F6;
-  --bg-subtle: #ECEAE3;
-  --bg-inset: #E6E3DA;
-  --text-primary: #14171A;
-  --text-secondary: #3B434C;
-  --text-muted: #57606A;
-  --border-hairline: #DDD9CE;
-  --border-strong: #C6C0B2;
-  --accent-primary: #1B4D3E;
-  --accent-primary-hover: #143B2F;
-  --accent-primary-text: #1B4D3E;
-  --accent-primary-soft: rgba(27, 77, 62, 0.10);
-  --accent-positive: #0F766E;
-  --accent-positive-soft: rgba(15, 118, 110, 0.10);
-  --accent-warning: #B45309;
-  --accent-warning-soft: rgba(180, 83, 9, 0.11);
-  --accent-danger: #BE123C;
-  --accent-danger-soft: rgba(190, 18, 60, 0.10);
-  --accent-info: #1D4ED8;
-  --accent-info-soft: rgba(29, 78, 216, 0.10);
-  --shadow-card: 0 1px 2px rgba(20, 23, 26, 0.05), 0 4px 12px -2px rgba(20, 23, 26, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  --shadow-elevated: 0 8px 24px -4px rgba(20, 23, 26, 0.12), 0 2px 6px rgba(20, 23, 26, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  --shadow-btn: 0 1px 2px rgba(20, 23, 26, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  --focus-ring: #1B4D3E;
+  /* User-specified Reference Claymorphism Palette */
+  --clay-peach: #FDBCB4;
+  --clay-blue: #ADD8E6;
+  --clay-mint: #98FF98;
+  --clay-lavender: #E6E6FA;
+  --clay-pink: #FFD1DC;
+  --clay-sage: #B5EAD7;
+  --clay-pink-deep: #EC4899; /* fill end only, keeps 3:1 against the track */
+  --clay-bg: #F0E6FA;
+  --clay-text: #374151;
+  --clay-shadow: inset -4px -4px 8px rgba(0, 0, 0, 0.1), 8px 8px 16px rgba(0, 0, 0, 0.15);
+  --clay-shadow-sm: inset -3px -3px 6px rgba(0, 0, 0, 0.08), 5px 5px 12px rgba(0, 0, 0, 0.12);
+  --clay-shadow-pressed: inset 4px 4px 8px rgba(0, 0, 0, 0.12), 2px 2px 4px rgba(0, 0, 0, 0.1);
+
+  /* Semantic App Surface Mappings -> Claymorphism Pastel Day */
+  --bg-canvas: #F0E6FA;
+  --bg-surface: #FAF6FF;
+  --bg-surface-hover: #F3ECFF;
+  --bg-subtle: #E6E6FA;
+  --bg-inset: #DFD8F5;
+  --text-primary: #27272A;
+  --text-secondary: #374151;
+  --text-muted: #4B5563;
+  --border-hairline: rgba(255, 255, 255, 0.72);
+  --border-strong: rgba(255, 255, 255, 0.9);
+  --accent-primary: #FDBCB4;
+  --accent-primary-hover: #FCA89D;
+  --accent-primary-text: #6D28D9;
+  --accent-primary-soft: #FFD1DC;
+  --accent-positive: #047857;
+  --accent-positive-soft: #B5EAD7;
+  --accent-warning: #92400E;
+  --accent-warning-soft: #FDE68A;
+  --accent-danger: #9F1239;
+  --accent-danger-soft: #FFD1DC;
+  --accent-info: #1E40AF;
+  --accent-info-soft: #ADD8E6;
+  --shadow-card: var(--clay-shadow);
+  --shadow-elevated: inset -5px -5px 10px rgba(0, 0, 0, 0.11), 12px 12px 24px rgba(67, 56, 202, 0.18);
+  --shadow-btn: var(--clay-shadow-sm);
+  --focus-ring: #6D28D9;
 }
 
+/* Cozy Clay Twilight (Dark Mode Claymorphism variant) */
 .dark {
-  --bg-canvas: #111315;
-  --bg-surface: #1A1D21;
-  --bg-surface-hover: #21252B;
-  --bg-subtle: #24282E;
-  --bg-inset: #15181C;
-  --text-primary: #F3F4F6;
-  --text-secondary: #D1D5DB;
-  --text-muted: #9BA3AE;
-  --border-hairline: #2C313A;
-  --border-strong: #3E4552;
-  --accent-primary: #0F766E;
-  --accent-primary-hover: #115E59;
-  --accent-primary-text: #2DD4BF;
-  --accent-primary-soft: rgba(45, 212, 191, 0.12);
-  --accent-positive: #34D399;
-  --accent-positive-soft: rgba(52, 211, 153, 0.13);
-  --accent-warning: #F59E0B;
-  --accent-warning-soft: rgba(245, 158, 11, 0.13);
-  --accent-danger: #FB7185;
-  --accent-danger-soft: rgba(251, 113, 133, 0.13);
-  --accent-info: #60A5FA;
-  --accent-info-soft: rgba(96, 165, 250, 0.13);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 16px -4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --shadow-elevated: 0 16px 36px -6px rgba(0, 0, 0, 0.55), 0 4px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  --shadow-btn: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.09);
-  --focus-ring: #2DD4BF;
+  --clay-bg: #231E36;
+  --clay-text: #F9FAFB;
+  --clay-shadow: inset -4px -4px 8px rgba(0, 0, 0, 0.38), inset 3px 3px 6px rgba(255, 255, 255, 0.08), 8px 8px 18px rgba(10, 8, 22, 0.5);
+  --clay-shadow-sm: inset -3px -3px 6px rgba(0, 0, 0, 0.32), inset 2px 2px 4px rgba(255, 255, 255, 0.08), 5px 5px 12px rgba(10, 8, 22, 0.42);
+
+  --bg-canvas: #231E36;
+  --bg-surface: #2F2847;
+  --bg-surface-hover: #383054;
+  --bg-subtle: #3B3259;
+  --bg-inset: #1D182E;
+  --text-primary: #F9FAFB;
+  --text-secondary: #E5E7EB;
+  --text-muted: #C4B5FD;
+  --border-hairline: rgba(255, 255, 255, 0.22);
+  --border-strong: rgba(255, 255, 255, 0.35);
+  --accent-primary: #FDBCB4;
+  --accent-primary-hover: #FCA89D;
+  --accent-primary-text: #FFD1DC;
+  --accent-primary-soft: rgba(253, 188, 180, 0.2);
+  --accent-positive: #6EE7B7;
+  --accent-positive-soft: rgba(152, 255, 152, 0.18);
+  --accent-warning: #FCD34D;
+  --accent-warning-soft: rgba(252, 211, 77, 0.18);
+  --accent-danger: #FDA4AF;
+  --accent-danger-soft: rgba(255, 209, 220, 0.2);
+  --accent-info: #93C5FD;
+  --accent-info-soft: rgba(173, 216, 230, 0.2);
+  --shadow-card: var(--clay-shadow);
+  --shadow-elevated: inset -5px -5px 10px rgba(0, 0, 0, 0.45), 12px 12px 26px rgba(8, 6, 18, 0.65);
+  --shadow-btn: var(--clay-shadow-sm);
+  --focus-ring: #A78BFA;
 }
 
 @layer base {
   body {
-    font-family: var(--font-sans);
-    background-color: var(--bg-canvas);
-    color: var(--text-primary);
+    background: var(--clay-bg);
+    color: var(--clay-text);
+    font-family: "Nunito", var(--font-sans);
     overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-weight: 800;
   }
 
   .tabular-nums {
@@ -81,91 +114,218 @@
   select:focus-visible,
   textarea:focus-visible,
   [tabindex]:focus-visible {
-    outline: 2px solid var(--focus-ring);
-    outline-offset: 2px;
+    outline: 3px solid #6D28D9;
+    outline-offset: 4px;
   }
 }
 
+/* Reference Claymorphism Classes (.card, .button, .progress) + Component Mappings */
 @layer components {
+  /* Thick translucent rim + inner shade + soft drop shadow = clay */
+  .card,
   .tactile-card {
+    padding: 1.5rem;
+    border: 4px solid rgba(255, 255, 255, 0.65);
+    border-radius: 1.5rem;
     background: var(--bg-surface);
-    border: 1px solid var(--border-hairline);
-    border-radius: 1rem;
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--clay-shadow);
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  }
+
+  .dark .card,
+  .dark .tactile-card {
+    border-color: rgba(255, 255, 255, 0.18);
   }
 
   .tactile-card-elevated {
+    border: 4px solid rgba(255, 255, 255, 0.78);
+    border-radius: 1.5rem;
     background: var(--bg-surface);
-    border: 1px solid var(--border-strong);
-    border-radius: 1rem;
     box-shadow: var(--shadow-elevated);
+  }
+
+  .dark .tactile-card-elevated {
+    border-color: rgba(255, 255, 255, 0.24);
+  }
+
+  /* Pastel Clay Accent Card Variants (with high-contrast #1F2937 text for WCAG AA!) */
+  .clay-surface-peach {
+    background: var(--clay-peach) !important;
+    color: #1F2937 !important;
+    border: 4px solid rgba(255, 255, 255, 0.65) !important;
+    border-radius: 1.5rem;
+    box-shadow: var(--clay-shadow);
+  }
+
+  .clay-surface-blue {
+    background: var(--clay-blue) !important;
+    color: #1F2937 !important;
+    border: 4px solid rgba(255, 255, 255, 0.65) !important;
+    border-radius: 1.5rem;
+    box-shadow: var(--clay-shadow);
+  }
+
+  .clay-surface-mint {
+    background: var(--clay-mint) !important;
+    color: #1F2937 !important;
+    border: 4px solid rgba(255, 255, 255, 0.65) !important;
+    border-radius: 1.5rem;
+    box-shadow: var(--clay-shadow);
+  }
+
+  .clay-surface-lavender {
+    background: var(--clay-lavender) !important;
+    color: #1F2937 !important;
+    border: 4px solid rgba(255, 255, 255, 0.65) !important;
+    border-radius: 1.5rem;
+    box-shadow: var(--clay-shadow);
+  }
+
+  .clay-surface-pink {
+    background: var(--clay-pink) !important;
+    color: #1F2937 !important;
+    border: 4px solid rgba(255, 255, 255, 0.65) !important;
+    border-radius: 1.5rem;
+    box-shadow: var(--clay-shadow);
+  }
+
+  .clay-surface-sage {
+    background: var(--clay-sage) !important;
+    color: #1F2937 !important;
+    border: 4px solid rgba(255, 255, 255, 0.65) !important;
+    border-radius: 1.5rem;
+    box-shadow: var(--clay-shadow);
   }
 
   .tactile-well {
     background: var(--bg-subtle);
-    border: 1px solid var(--border-hairline);
-    border-radius: 0.75rem;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+    border: 3px solid rgba(255, 255, 255, 0.55);
+    border-radius: 1.25rem;
+    box-shadow: inset 3px 3px 7px rgba(0, 0, 0, 0.08), inset -2px -2px 5px rgba(255, 255, 255, 0.6);
+  }
+
+  .dark .tactile-well {
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: inset 3px 3px 7px rgba(0, 0, 0, 0.35);
+  }
+
+  .button {
+    padding: 1.25rem 3rem;
+    border: 4px solid rgba(255, 255, 255, 0.55);
+    border-radius: 1rem;
+    background: var(--clay-peach);
+    color: #1F2937;
+    font-size: 1.25rem;
+    font-weight: 700;
+    box-shadow: var(--clay-shadow);
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  }
+
+  .button:hover {
+    transform: scale(1.05);
+  }
+
+  .button:active {
+    transform: scale(0.97);
+    box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.12), 2px 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .button:focus-visible {
+    outline: 3px solid #6D28D9;
+    outline-offset: 4px;
   }
 
   .tactile-btn {
     background: var(--bg-surface);
     color: var(--text-primary);
-    border: 1px solid var(--border-hairline);
-    box-shadow: var(--shadow-btn);
-    transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
+    border: 3px solid rgba(255, 255, 255, 0.65);
+    border-radius: 1rem;
+    font-weight: 700;
+    box-shadow: var(--clay-shadow-sm);
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out, background-color 150ms ease;
+  }
+
+  .dark .tactile-btn {
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .tactile-btn:hover {
+    transform: scale(1.04);
     background: var(--bg-surface-hover);
-    border-color: var(--border-strong);
   }
 
   .tactile-btn:active {
-    transform: translateY(1px);
+    transform: scale(0.97);
+    box-shadow: var(--clay-shadow-pressed);
   }
 
+  /* Primary Clay Button — Chunky Peach Clay with High-Contrast #1F2937 Ink (WCAG AA > 8.5:1) */
   .tactile-btn-primary {
-    background: var(--accent-primary);
-    color: #FFFFFF;
-    border: 1px solid transparent;
-    box-shadow: var(--shadow-btn);
-    transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
+    background: var(--clay-peach);
+    color: #1F2937 !important;
+    border: 3px solid rgba(255, 255, 255, 0.68);
+    border-radius: 1rem;
+    font-weight: 800;
+    box-shadow: var(--clay-shadow-sm);
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out, background-color 150ms ease;
   }
 
   .tactile-btn-primary:hover {
-    background: var(--accent-primary-hover);
+    transform: scale(1.05);
+    background: #FCA89D;
   }
 
   .tactile-btn-primary:active {
-    transform: translateY(1px);
+    transform: scale(0.97);
+    box-shadow: var(--clay-shadow-pressed);
   }
 
   .tactile-input {
-    background: var(--bg-surface);
-    color: var(--text-primary);
-    border: 1px solid var(--border-hairline);
-    border-radius: 0.625rem;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+    background: #FFFFFF;
+    color: #1F2937;
+    border: 3px solid rgba(255, 255, 255, 0.75);
+    border-radius: 1rem;
+    box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.08), 3px 3px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .dark .tactile-input {
+    background: #1D182E;
+    color: #F9FAFB;
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.45);
+  }
+
+  .progress {
+    height: 1rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  .progress > span {
+    display: block;
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, var(--clay-pink), var(--clay-pink-deep));
   }
 }
 
 @keyframes vlFadeUp {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
 .vl-fade-up {
-  animation: vlFadeUp 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: vlFadeUp 200ms ease-out both;
 }
 
-/* Utility to hide scrollbars on chip strips */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -174,10 +334,9 @@
   scrollbar-width: none;
 }
 
-/* Subtle custom scrollbars for desktop feel */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -185,15 +344,14 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(115, 120, 128, 0.28);
+  background: rgba(109, 40, 217, 0.22);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(115, 120, 128, 0.48);
+  background: rgba(109, 40, 217, 0.4);
 }
 
-/* Privacy mask blur utility */
 .privacy-blur {
   filter: blur(7px);
   user-select: none;
@@ -205,6 +363,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .button,
+  .card,
+  .tactile-card,
+  .tactile-btn,
+  .tactile-btn-primary {
+    transition: none !important;
+  }
   *,
   *::before,
   *::after {

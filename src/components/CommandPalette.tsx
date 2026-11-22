@@ -21,6 +21,7 @@ import {
   CornerDownLeft,
   Tag,
   MessageSquareText,
+  Users,
   X,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
@@ -244,6 +245,15 @@ export const CommandPalette: React.FC = () => {
         keywords: 'goals savings debt payoff snowball avalanche',
         icon: Target,
         onSelect: closeAnd(() => setActiveNav('goals')),
+      },
+      {
+        id: 'nav-squad',
+        group: 'Navigation',
+        title: 'Go to Friend Savings Squads (Share & Leaderboard)',
+        subtitle: 'Save with friends, track squad goals, and share leaderboard codes',
+        keywords: 'squad friend savings bestie share leaderboard team challenge',
+        icon: Users,
+        onSelect: closeAnd(() => setActiveNav('squad')),
       },
       {
         id: 'nav-forecast',
@@ -677,7 +687,7 @@ export const CommandPalette: React.FC = () => {
               <span>Close</span>
             </span>
           </div>
-          <span className="font-medium text-[var(--text-secondary)]">VaultLedger</span>
+          <span className="font-medium text-[var(--text-secondary)]">AYNLYTICS</span>
         </div>
       </div>
     </div>

@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
-import { CheckCircle2, Info, AlertCircle, X, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
+import { Toaster } from 'sonner';
+import { motion } from 'motion/react';
 import { useFinanceStore } from './store/useFinanceStore';
 import { Layout } from './components/Layout';
 import { DashboardView } from './components/DashboardView';
@@ -7,6 +9,7 @@ import { TransactionsView } from './components/TransactionsView';
 import { BudgetsView } from './components/BudgetsView';
 import { RecurringView } from './components/RecurringView';
 import { GoalsDebtView } from './components/GoalsDebtView';
+import { SavingsSquadView } from './components/SavingsSquadView';
 import { NetWorthForecaster } from './components/NetWorthForecaster';
 import { AccountsView } from './components/AccountsView';
 import { RulesView } from './components/RulesView';
@@ -33,10 +36,8 @@ export default function App() {
   const data = useFinanceStore((s) => s.data);
   const theme = data.settings.theme;
   const activeNav = useFinanceStore((s) => s.activeNav);
-  const toast = useFinanceStore((s) => s.toast);
 
   const initialize = useFinanceStore((s) => s.initialize);
-  const clearToast = useFinanceStore((s) => s.clearToast);
   const addForecastMilestone = useFinanceStore((s) => s.addForecastMilestone);
   const toggleForecastMilestone = useFinanceStore((s) => s.toggleForecastMilestone);
   const deleteForecastMilestone = useFinanceStore((s) => s.deleteForecastMilestone);
@@ -56,7 +57,7 @@ export default function App() {
       root.classList.remove('dark');
     }
 
-    const themeColor = isDark ? '#111315' : '#F6F5F1';
+    const themeColor = isDark ? '#231E36' : '#F0E6FA';
     let metaTheme = document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     if (!metaTheme) {
       metaTheme = document.createElement('meta');
@@ -137,20 +138,20 @@ export default function App() {
           className="tactile-card-elevated vl-fade-up px-7 py-6 flex flex-col items-center gap-3 text-center max-w-xs w-full"
         >
           <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center animate-pulse"
+            className="w-12 h-12 rounded-2xl flex items-center justify-center animate-pulse border-[3px] border-white/75"
             style={{
-              backgroundColor: 'var(--accent-primary)',
+              backgroundColor: 'var(--clay-peach)',
               boxShadow: 'var(--shadow-btn)',
             }}
           >
-            <ShieldCheck className="w-6 h-6 text-white" aria-hidden="true" />
+            <ShieldCheck className="w-6 h-6 text-[#1F2937]" aria-hidden="true" />
           </div>
           <div className="space-y-0.5">
-            <div className="text-sm font-semibold tracking-tight text-[var(--text-primary)]">
-              Opening local VaultLedger…
+            <div className="text-sm font-extrabold tracking-tight text-[var(--text-primary)]">
+              Opening AYNLYTICS 2.0…
             </div>
             <div className="text-xs text-[var(--text-muted)]">
-              Loading encrypted offline ledger
+              Loading your 3D Clay Finance &amp; Friend Savings Studio
             </div>
           </div>
         </div>
@@ -174,6 +175,8 @@ export default function App() {
         return <RecurringView />;
       case 'goals':
         return <GoalsDebtView />;
+      case 'squad':
+        return <SavingsSquadView />;
       case 'forecast':
         return (
           <NetWorthForecaster
@@ -196,87 +199,26 @@ export default function App() {
     }
   };
 
-  const toastAccentColor =
-    toast?.type === 'success'
-      ? 'var(--accent-positive)'
-      : toast?.type === 'error'
-      ? 'var(--accent-danger)'
-      : 'var(--accent-info)';
-
-  const toastAccentSoft =
-    toast?.type === 'success'
-      ? 'var(--accent-positive-soft)'
-      : toast?.type === 'error'
-      ? 'var(--accent-danger-soft)'
-      : 'var(--accent-info-soft)';
-
   return (
     <>
-      <Layout>{renderActiveView()}</Layout>
+      <Layout>
+        <motion.div
+          key={activeNav}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+        >
+          {renderActiveView()}
+        </motion.div>
+      </Layout>
 
       {/* Global Modals */}
       <QuickAddModal />
       <CommandPalette />
       <ImportExportModal />
 
-      {/* Tactile Toast Notification */}
-      {toast && (
-        <div
-          key={toast.id}
-          role="status"
-          aria-live="polite"
-          className="no-print fixed bottom-5 right-5 z-50 max-w-md tactile-card-elevated vl-fade-up px-3.5 py-2.5 flex items-center gap-3"
-          style={{
-            borderLeftWidth: '3px',
-            borderLeftColor: toastAccentColor,
-          }}
-        >
-          <span
-            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-            style={{
-              backgroundColor: toastAccentSoft,
-              color: toastAccentColor,
-            }}
-            aria-hidden="true"
-          >
-            {toast.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4" />
-            ) : toast.type === 'error' ? (
-              <AlertCircle className="w-4 h-4" />
-            ) : (
-              <Info className="w-4 h-4" />
-            )}
-          </span>
-
-          <span className="text-xs sm:text-[13px] font-medium leading-snug text-[var(--text-primary)]">
-            {toast.message}
-          </span>
-
-          {toast.action && (
-            <button
-              type="button"
-              onClick={() => {
-                const actionFn = toast.action?.onClick;
-                clearToast();
-                actionFn?.();
-              }}
-              className="tactile-btn ml-1 px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0 cursor-pointer"
-              style={{ color: 'var(--accent-primary-text)' }}
-            >
-              {toast.action.label}
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={clearToast}
-            className="ml-auto p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer shrink-0"
-            aria-label="Dismiss notification"
-          >
-            <X className="w-3.5 h-3.5" aria-hidden="true" />
-          </button>
-        </div>
-      )}
+      {/* Sonner Global Toaster */}
+      <Toaster position="bottom-right" richColors closeButton />
     </>
   );
 }

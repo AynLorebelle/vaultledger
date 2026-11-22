@@ -1,13 +1,13 @@
 {
-  "name": "VaultLedger — Offline Personal Finance",
-  "short_name": "VaultLedger",
-  "description": "100% offline-first personal finance & expense tracker with private local storage, cashflow Sankey, smart budgets, CSV/OFX import, and encrypted backups.",
+  "name": "AYNLYTICS — Clay Finance & Friend Savings Squad",
+  "short_name": "AYNLYTICS",
+  "description": "100% offline-first 3D Claymorphism personal finance, expense tracker & Friend Savings Squad with private local storage, cashflow Sankey, smart budgets, CSV/OFX import, and encrypted backups.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#F6F5F1",
-  "theme_color": "#1B4D3E",
+  "background_color": "#F0E6FA",
+  "theme_color": "#FDBCB4",
   "categories": ["finance", "productivity", "utilities"],
   "icons": [
     {

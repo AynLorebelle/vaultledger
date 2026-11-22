@@ -334,11 +334,11 @@ function registerIpcHandlers() {
     const defaultName =
       typeof options.defaultName === 'string' && options.defaultName.trim()
         ? path.basename(options.defaultName.trim())
-        : 'vaultledger-export.json';
+        : 'aynlytics-export.json';
     const filters = Array.isArray(options.filters) ? options.filters : [];
 
     const result = await dialog.showSaveDialog(mainWindow || undefined, {
-      title: 'Export from VaultLedger',
+      title: 'Export from AYNLYTICS',
       defaultPath: defaultName,
       filters,
     });
@@ -356,7 +356,7 @@ function registerIpcHandlers() {
     const filters = Array.isArray(options.filters) ? options.filters : [];
 
     const result = await dialog.showOpenDialog(mainWindow || undefined, {
-      title: 'Import into VaultLedger',
+      title: 'Import into AYNLYTICS',
       properties: ['openFile'],
       filters,
     });
@@ -498,8 +498,8 @@ async function createMainWindow() {
     height: 880,
     minWidth: 960,
     minHeight: 640,
-    backgroundColor: '#F6F5F1',
-    title: 'VaultLedger',
+    backgroundColor: '#F0E6FA',
+    title: 'AYNLYTICS',
     autoHideMenuBar: true,
     show: false,
     icon: windowIcon,

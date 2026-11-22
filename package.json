@@ -1,7 +1,7 @@
 {
-  "name": "vaultledger",
-  "version": "1.1.0",
-  "description": "VaultLedger — Offline-first personal finance & expense tracker desktop app",
+  "name": "aynlytics",
+  "version": "2.0.0",
+  "description": "AYNLYTICS — Offline-first 3D Claymorphism personal finance, expense tracker & Friend Savings Squad desktop app",
   "author": "AynLorebelle",
   "license": "MIT",
   "main": "electron/main.cjs",
@@ -21,10 +21,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/nunito": "^5.3.0",
+    "@types/canvas-confetti": "^1.9.0",
+    "canvas-confetti": "^1.9.4",
+    "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
+    "motion": "^14.14.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.1",
+    "sonner": "^2.0.8",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
@@ -43,9 +49,9 @@
     "wait-on": "^8.0.2"
   },
   "build": {
-    "appId": "com.aynlorebelle.vaultledger",
-    "productName": "VaultLedger",
-    "copyright": "Copyright © 2026 VaultLedger",
+    "appId": "com.aynlorebelle.aynlytics",
+    "productName": "AYNLYTICS",
+    "copyright": "Copyright © 2026 AYNLYTICS",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -61,11 +67,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "build/icon.ico"
@@ -77,19 +87,23 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "VaultLedger"
+      "shortcutName": "AYNLYTICS"
     },
     "portable": {
       "artifactName": "${productName}-${version}-win-${arch}-portable.${ext}"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "icon": "build/icon.png",
       "category": "public.app-category.finance",
       "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "icon": "build/icon.png",
       "category": "Finance",
       "artifactName": "${productName}-${version}-linux-${arch}.${ext}"

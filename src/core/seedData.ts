@@ -12,6 +12,7 @@ import type {
   VaultSettings,
 } from '../types/finance';
 import { DEFAULT_USD_RATES } from './currency';
+import { createDefaultSavingsSquads } from './savingsSquad';
 
 const DEFAULT_EXCHANGE_RATES: Record<CurrencyCode, number> = {
   ...DEFAULT_USD_RATES,
@@ -1078,13 +1079,14 @@ export function createSampleVault(referenceDate: Date = new Date()): VaultData {
   };
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     updatedAt: nowIso,
     accounts,
     categories,
     transactions,
     recurringBills,
     savingsGoals,
+    savingsSquads: createDefaultSavingsSquads('USD'),
     rules,
     importPresets,
     forecastMilestones,

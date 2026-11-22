@@ -19,6 +19,7 @@ import {
   TrendingDown,
   PiggyBank,
   LineChart,
+  Users,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { computeAllAccountBalances, formatCurrency } from '../core/analytics';
@@ -198,6 +199,30 @@ export const GoalsDebtView: React.FC = () => {
     <div className="space-y-8">
       {/* SECTION 1: SAVINGS GOALS */}
       <section className="space-y-4">
+        <div className="card clay-surface-pink p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-white/75 flex items-center justify-center shrink-0 border-2 border-white">
+              <Users className="w-5 h-5 text-[#9F1239]" aria-hidden="true" />
+            </div>
+            <div>
+              <h2 className="text-base font-extrabold text-[#1F2937] tracking-tight">
+                Saving with a Friend or Bestie?
+              </h2>
+              <p className="text-xs font-medium text-[#374151] mt-0.5">
+                Team up on shared travel, concert, or emergency goals, swap offline squad codes, and climb the savings leaderboard together!
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveNav('squad')}
+            className="tactile-btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold shrink-0 cursor-pointer"
+          >
+            <Users className="w-4 h-4" aria-hidden="true" />
+            <span>Open Friend Savings Squads &amp; Share Leaderboard</span>
+          </button>
+        </div>
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">

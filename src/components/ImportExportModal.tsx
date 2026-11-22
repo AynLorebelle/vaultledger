@@ -342,7 +342,7 @@ export const ImportExportModal: React.FC = () => {
   const handleExportCsv = async () => {
     const csv = exportTransactionsToCsv(data.transactions, data.accounts, data.categories);
     const ok = await triggerFileSave(
-      `vaultledger-transactions-${todayIso()}.csv`,
+      `aynlytics-transactions-${todayIso()}.csv`,
       csv,
       'text/csv;charset=utf-8',
       { name: 'CSV Spreadsheet', extensions: ['csv'] }
@@ -353,10 +353,10 @@ export const ImportExportModal: React.FC = () => {
   const handleExportJson = async () => {
     const json = JSON.stringify(data, null, 2);
     const ok = await triggerFileSave(
-      `vaultledger-vault-${todayIso()}.json`,
+      `aynlytics-vault-${todayIso()}.json`,
       json,
       'application/json',
-      { name: 'VaultLedger JSON', extensions: ['json'] }
+      { name: 'AYNLYTICS JSON', extensions: ['json'] }
     );
     if (ok) showToast('Exported full JSON vault', 'success');
   };
@@ -375,10 +375,10 @@ export const ImportExportModal: React.FC = () => {
     try {
       const envelope = await encryptVault(data, encPassphrase);
       const ok = await triggerFileSave(
-        `vaultledger-backup-${todayIso()}.vledger`,
+        `aynlytics-backup-${todayIso()}.vledger`,
         JSON.stringify(envelope, null, 2),
         'application/json',
-        { name: 'Encrypted VaultLedger Backup', extensions: ['vledger'] }
+        { name: 'Encrypted AYNLYTICS Backup', extensions: ['vledger'] }
       );
       if (ok) {
         setEncPassphrase('');
@@ -1064,7 +1064,7 @@ export const ImportExportModal: React.FC = () => {
               <div className="flex items-center justify-between border-b border-[var(--border-hairline)] pb-3">
                 <div>
                   <h3 className="text-base font-bold text-[var(--text-primary)]">
-                    VaultLedger Monthly Financial Report
+                    AYNLYTICS Monthly Financial Report
                   </h3>
                   <p className="text-xs text-[var(--text-muted)]">
                     Generated locally on {todayIso()}

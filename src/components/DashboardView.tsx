@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -24,6 +25,8 @@ import {
   CalendarClock,
   CheckCircle2,
   ChevronRight,
+  Users,
+  Trophy,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import {
@@ -36,6 +39,7 @@ import {
   computeSpendingHeatmap,
   formatCurrency,
 } from '../core/analytics';
+import { computeSquadLeaderboard, createDefaultSavingsSquads } from '../core/savingsSquad';
 import type { VaultAnswerDrillAction } from '../types/finance';
 import { AskVaultPanel } from './AskVaultPanel';
 import { FinancialHealthCard } from './FinancialHealthCard';
@@ -79,6 +83,15 @@ export const DashboardView: React.FC = () => {
   const topCategories = useMemo(
     () => categorySpends.filter((c) => c.spent > 0 || c.effectiveBudget > 0).slice(0, 6),
     [categorySpends],
+  );
+
+  const firstSquad = useMemo(
+    () => (data.savingsSquads && data.savingsSquads[0]) ?? createDefaultSavingsSquads(currency)[0],
+    [data.savingsSquads, currency],
+  );
+  const squadLeaderboard = useMemo(
+    () => computeSquadLeaderboard(firstSquad),
+    [firstSquad],
   );
 
   const budgetProgressPct =
@@ -126,66 +139,57 @@ export const DashboardView: React.FC = () => {
       {/* Executive KPI Cockpit */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* 1. Safe-to-Spend */}
-        <div className="tactile-card p-5 flex flex-col justify-between min-w-0">
+        <motion.div
+          whileHover={{ y: -2 }}
+          className="card clay-surface-peach flex flex-col justify-between min-w-0"
+        >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1F2937]/80">
               Safe-to-Spend
             </span>
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-              style={{
-                backgroundColor: 'var(--accent-positive-soft)',
-                color: 'var(--accent-positive)',
-              }}
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white/75 text-[#047857] border-2 border-white/80"
               aria-hidden="true"
             >
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div
-              className="text-2xl font-bold tracking-tight tabular-nums"
-              style={{
-                color: kpis.safeToSpend >= 0 ? 'var(--text-primary)' : 'var(--accent-danger)',
-              }}
-            >
+            <div className="text-2xl font-extrabold tracking-tight tabular-nums text-[#1F2937]">
               <Money amount={kpis.safeToSpend} currency={currency} privacyMask={privacyMask} />
             </div>
-            <p className="text-xs text-[var(--text-muted)] mt-1.5">
+            <p className="text-xs font-medium text-[#1F2937]/85 mt-1.5">
               Liquid cash{' '}
               <Money
                 amount={kpis.liquidCash}
                 currency={currency}
                 privacyMask={privacyMask}
                 compact
-                className="font-semibold text-[var(--text-secondary)]"
+                className="font-extrabold text-[#1F2937]"
               />{' '}
               minus 30d bills &amp; goals
             </p>
           </div>
-        </div>
+        </motion.div>
 
         {/* 2. Net Cashflow & Savings Rate */}
-        <div className="tactile-card p-5 flex flex-col justify-between min-w-0">
+        <motion.div
+          whileHover={{ y: -2 }}
+          className="card clay-surface-mint flex flex-col justify-between min-w-0"
+        >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1F2937]/80">
               Net Cashflow
             </span>
             <span
-              className="px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums whitespace-nowrap"
-              style={savingsPillStyle}
+              className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold tabular-nums whitespace-nowrap bg-white/80 text-[#065F46] border border-white/80"
+              style={kpis.savingsRate < 0 ? savingsPillStyle : undefined}
             >
               {kpis.savingsRate.toFixed(1)}% saved
             </span>
           </div>
           <div className="mt-3">
-            <div
-              className="text-2xl font-bold tracking-tight tabular-nums"
-              style={{
-                color:
-                  kpis.netCashflow >= 0 ? 'var(--accent-positive)' : 'var(--accent-danger)',
-              }}
-            >
+            <div className="text-2xl font-extrabold tracking-tight tabular-nums text-[#1F2937]">
               <Money
                 amount={kpis.netCashflow}
                 currency={currency}
@@ -193,11 +197,10 @@ export const DashboardView: React.FC = () => {
                 showSign
               />
             </div>
-            <div className="mt-1.5 flex items-center gap-3 text-xs text-[var(--text-muted)]">
+            <div className="mt-1.5 flex items-center gap-3 text-xs font-medium text-[#1F2937]/85">
               <span className="inline-flex items-center gap-1">
                 <TrendingUp
-                  className="w-3 h-3"
-                  style={{ color: 'var(--accent-positive)' }}
+                  className="w-3.5 h-3.5 text-[#065F46]"
                   aria-hidden="true"
                 />
                 <Money
@@ -205,13 +208,12 @@ export const DashboardView: React.FC = () => {
                   currency={currency}
                   privacyMask={privacyMask}
                   compact
-                  className="text-[var(--text-secondary)] font-medium"
+                  className="text-[#1F2937] font-bold"
                 />
               </span>
               <span className="inline-flex items-center gap-1">
                 <TrendingDown
-                  className="w-3 h-3"
-                  style={{ color: 'var(--accent-danger)' }}
+                  className="w-3.5 h-3.5 text-[#9F1239]"
                   aria-hidden="true"
                 />
                 <Money
@@ -219,52 +221,50 @@ export const DashboardView: React.FC = () => {
                   currency={currency}
                   privacyMask={privacyMask}
                   compact
-                  className="text-[var(--text-secondary)] font-medium"
+                  className="text-[#1F2937] font-bold"
                 />
               </span>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* 3. Total Expenses & Burn-Rate Forecast */}
-        <div className="tactile-card p-5 flex flex-col justify-between min-w-0">
+        <motion.div
+          whileHover={{ y: -2 }}
+          className="card clay-surface-blue flex flex-col justify-between min-w-0"
+        >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1F2937]/80">
               Total Expenses
             </span>
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-              style={{
-                backgroundColor: 'var(--accent-warning-soft)',
-                color: 'var(--accent-warning)',
-              }}
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white/75 text-[#92400E] border-2 border-white/80"
               aria-hidden="true"
             >
               <Flame className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold tracking-tight tabular-nums text-[var(--text-primary)]">
+            <div className="text-2xl font-extrabold tracking-tight tabular-nums text-[#1F2937]">
               <Money amount={kpis.periodExpenses} currency={currency} privacyMask={privacyMask} />
             </div>
             <div className="mt-2 space-y-1.5">
-              <div
-                className="w-full h-1.5 rounded-full bg-[var(--bg-subtle)] overflow-hidden"
-                aria-hidden="true"
-              >
-                <div
-                  className="h-full rounded-full transition-[width] duration-300"
-                  style={{ width: `${budgetProgressPct}%`, backgroundColor: budgetBarColor }}
+              <div className="progress mt-2" aria-hidden="true">
+                <span
+                  style={{
+                    width: `${budgetProgressPct}%`,
+                    borderColor: budgetBarColor,
+                  }}
                 />
               </div>
-              <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] tabular-nums">
+              <div className="flex items-center justify-between text-[11px] font-medium text-[#1F2937]/85 tabular-nums">
                 <span>
                   Burn:{' '}
                   <Money
                     amount={kpis.dailyBurnRate}
                     currency={currency}
                     privacyMask={privacyMask}
-                    className="font-semibold text-[var(--text-secondary)]"
+                    className="font-extrabold text-[#1F2937]"
                   />
                   /d
                 </span>
@@ -275,36 +275,35 @@ export const DashboardView: React.FC = () => {
                     currency={currency}
                     privacyMask={privacyMask}
                     compact
-                    className="font-semibold text-[var(--text-secondary)]"
+                    className="font-extrabold text-[#1F2937]"
                   />
                 </span>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* 4. Total Net Worth + Forecast Lab CTA */}
-        <div className="tactile-card p-5 flex flex-col justify-between min-w-0">
+        <motion.div
+          whileHover={{ y: -2 }}
+          className="card clay-surface-pink flex flex-col justify-between min-w-0"
+        >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#1F2937]/80">
               Total Net Worth
             </span>
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-              style={{
-                backgroundColor: 'var(--accent-primary-soft)',
-                color: 'var(--accent-primary-text)',
-              }}
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white/75 text-[#6D28D9] border-2 border-white/80"
               aria-hidden="true"
             >
               <Landmark className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold tracking-tight tabular-nums text-[var(--text-primary)]">
+            <div className="text-2xl font-extrabold tracking-tight tabular-nums text-[#1F2937]">
               <Money amount={kpis.totalNetWorth} currency={currency} privacyMask={privacyMask} />
             </div>
-            <div className="mt-1.5 flex items-center gap-2.5 text-xs text-[var(--text-muted)]">
+            <div className="mt-1.5 flex items-center gap-2.5 text-xs font-medium text-[#1F2937]/85">
               <span>
                 Cash:{' '}
                 <Money
@@ -312,10 +311,10 @@ export const DashboardView: React.FC = () => {
                   currency={currency}
                   privacyMask={privacyMask}
                   compact
-                  className="font-semibold text-[var(--accent-positive)]"
+                  className="font-extrabold text-[#065F46]"
                 />
               </span>
-              <span className="text-[var(--border-strong)]" aria-hidden="true">
+              <span className="text-[#1F2937]/40" aria-hidden="true">
                 •
               </span>
               <span>
@@ -325,21 +324,132 @@ export const DashboardView: React.FC = () => {
                   currency={currency}
                   privacyMask={privacyMask}
                   compact
-                  className="font-semibold text-[var(--accent-danger)]"
+                  className="font-extrabold text-[#9F1239]"
                 />
               </span>
             </div>
-            <div className="mt-2.5 pt-2 border-t border-[var(--border-hairline)]">
+            <div className="mt-2.5 pt-2 border-t border-white/60">
               <button
                 type="button"
                 onClick={() => setActiveNav('forecast')}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--accent-primary-text)] hover:underline cursor-pointer"
+                className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#5B21B6] hover:underline cursor-pointer"
               >
                 <span>Open Forecast Lab</span>
                 <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             </div>
           </div>
+        </motion.div>
+      </section>
+
+      {/* Friend Savings Squad & Share Leaderboard Spotlight Card */}
+      <section className="card clay-surface-sage min-w-0">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/85 text-[#1F2937] border-2 border-white/90 text-[11px] font-extrabold">
+                <Users className="w-3.5 h-3.5 text-[#6D28D9]" aria-hidden="true" />
+                <span>Co-Op Friend Savings Squad</span>
+              </span>
+              {squadLeaderboard.topSaver && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FDBCB4] text-[#1F2937] border-2 border-white/90 text-[11px] font-extrabold shadow-xs">
+                  <Trophy className="w-3.5 h-3.5 text-[#92400E]" aria-hidden="true" />
+                  <span>
+                    Top Saver: {squadLeaderboard.topSaver.member.name} •{' '}
+                    {squadLeaderboard.topSaver.sharePercent.toFixed(1)}% Share of Pot
+                  </span>
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-baseline gap-2.5">
+              <h2 className="text-lg sm:text-xl font-extrabold text-[#1F2937] tracking-tight">
+                {firstSquad.emoji} {firstSquad.name}
+              </h2>
+              <span className="text-xs font-extrabold text-[#1F2937]/80 tabular-nums">
+                Room {firstSquad.roomCode}
+              </span>
+            </div>
+
+            <p className="text-xs font-semibold text-[#1F2937]/85">
+              {squadLeaderboard.headline}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <div className="px-3.5 py-2 rounded-2xl bg-white/80 border-2 border-white/90 text-right">
+              <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#1F2937]/70">
+                Squad Pot Progress
+              </div>
+              <div className="text-sm font-extrabold text-[#1F2937] tabular-nums">
+                <Money
+                  amount={squadLeaderboard.totalSaved}
+                  currency={currency}
+                  privacyMask={privacyMask}
+                />{' '}
+                <span className="text-xs font-bold text-[#1F2937]/70">
+                  / <Money amount={squadLeaderboard.targetAmount} currency={currency} privacyMask={privacyMask} compact /> (
+                  {squadLeaderboard.progressPercent.toFixed(1)}%)
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveNav('squad')}
+              className="button tactile-btn-primary !px-4 !py-2.5 !text-xs sm:!text-sm inline-flex items-center gap-2 cursor-pointer"
+            >
+              <Users className="w-4 h-4 text-[#1F2937]" aria-hidden="true" />
+              <span>Open Friend Squads &amp; Share Link</span>
+              <ArrowRight className="w-4 h-4 text-[#1F2937]" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+
+        {/* Reference Claymorphism Progress Bar */}
+        <div className="progress mt-3.5" aria-label="Squad savings goal progress">
+          <span style={{ width: `${squadLeaderboard.progressPercent}%` }} />
+        </div>
+
+        {/* Friend Share Pills */}
+        <div className="mt-3.5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          {squadLeaderboard.entries.map((entry) => (
+            <div
+              key={entry.member.id}
+              className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-2xl bg-white/85 border-2 border-white/90 text-[#1F2937]"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-extrabold text-[#1F2937] border-2 border-white shrink-0"
+                  style={{ backgroundColor: entry.member.clayColor }}
+                >
+                  {entry.rank === 1 ? '👑' : `#${entry.rank}`}
+                </span>
+                <div className="min-w-0">
+                  <div className="text-xs font-extrabold text-[#1F2937] truncate">
+                    {entry.member.name}
+                  </div>
+                  <div className="text-[11px] font-bold text-[#1F2937]/75 tabular-nums">
+                    {entry.sharePercent.toFixed(1)}% share • {entry.contributionCount} deposits
+                  </div>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-xs font-extrabold text-[#1F2937] tabular-nums">
+                  <Money
+                    amount={entry.totalContributed}
+                    currency={currency}
+                    privacyMask={privacyMask}
+                  />
+                </div>
+                {entry.isTopSaver && entry.shareGapPercent > 0 && (
+                  <div className="text-[10px] font-extrabold text-[#047857] tabular-nums">
+                    +{entry.shareGapPercent.toFixed(1)}% lead
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 

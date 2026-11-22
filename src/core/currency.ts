@@ -1,4 +1,5 @@
 import type { CurrencyCode, VaultData, VaultSettings } from '../types/finance';
+import { createDefaultSavingsSquads } from './savingsSquad';
 
 export interface CurrencyMetadata {
   code: CurrencyCode;
@@ -177,9 +178,16 @@ export function normalizeVaultData(vault: VaultData): VaultData {
     ? vault.forecastMilestones
     : [];
 
+  const savingsSquads = Array.isArray(vault.savingsSquads)
+    ? vault.savingsSquads
+    : existingSettings?.isDemoData
+      ? createDefaultSavingsSquads(baseCurrency)
+      : [];
+
   return {
     ...vault,
     forecastMilestones,
+    savingsSquads,
     settings: {
       ...existingSettings,
       baseCurrency,

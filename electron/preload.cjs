@@ -2,7 +2,7 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-let appVersion = '1.1.0';
+let appVersion = '2.0.0';
 try {
   const pkg = require('../package.json');
   if (pkg && typeof pkg.version === 'string') {

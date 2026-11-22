@@ -72,6 +72,7 @@ const NAV_CTA_LABELS: Record<NavSection, string> = {
   budgets: 'Open Budgets',
   recurring: 'Review Recurring',
   goals: 'Open Goals & Debt',
+  squad: 'Open Friend Squads',
   forecast: 'Open Forecast',
   accounts: 'Inspect Accounts',
   rules: 'Open Rules',

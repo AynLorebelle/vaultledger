@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { toast as sonnerToast } from 'sonner';
 import type {
   Account,
   BankImportPreset,
@@ -11,6 +12,9 @@ import type {
   RecurrenceFrequency,
   RecurringBill,
   SavingsGoal,
+  SavingsSquadPot,
+  SquadContribution,
+  SquadMember,
   TimeRange,
   Transaction,
   VaultData,
@@ -23,6 +27,13 @@ import {
   rebaseExchangeRates,
 } from '../core/currency';
 import { applyRulesToTransaction } from '../core/rules';
+import {
+  CLAY_MEMBER_COLORS,
+  createDefaultSavingsSquads,
+  decodeSquadSharePayload,
+  getInitials,
+  mergeSharedSquadPot,
+} from '../core/savingsSquad';
 import { createEmptyVault, createSampleVault } from '../core/seedData';
 import { loadStoredVault, saveStoredVault } from '../core/storage';
 
@@ -119,6 +130,27 @@ export interface FinanceStoreState {
   contributeToGoal: (goalId: string, amount: number, fromAccountId?: string) => void;
   deleteSavingsGoal: (id: string) => void;
 
+  createSavingsSquad: (input: {
+    name: string;
+    emoji: string;
+    targetAmount: number;
+    currency: CurrencyCode;
+    ownerName: string;
+    friendName: string;
+  }) => void;
+  deleteSavingsSquad: (potId: string) => void;
+  addSquadMember: (potId: string, name: string, clayColor?: string) => void;
+  addSquadContribution: (
+    potId: string,
+    input: { memberId: string; amount: number; date: string; note: string },
+  ) => void;
+  deleteSquadContribution: (potId: string, contributionId: string) => void;
+  importSharedSquadCode: (rawCodeOrUrl: string) => {
+    ok: boolean;
+    potName?: string;
+    error?: string;
+  };
+
   addRule: (rule: Omit<CategoryRule, 'id'>) => CategoryRule;
   updateRule: (id: string, patch: Partial<Omit<CategoryRule, 'id'>>) => void;
   deleteRule: (id: string) => void;
@@ -207,6 +239,13 @@ function detectInitialStorageMode(): 'desktop' | 'web' {
     : 'web';
 }
 
+let squadSyncChannel: BroadcastChannel | null = null;
+
+function generateRoomCode(): string {
+  const num = Math.floor(100 + Math.random() * 900);
+  return `AYN-${num}`;
+}
+
 export const useFinanceStore = create<FinanceStoreState>((set, get) => {
   const scheduleSave = (nextData: VaultData): void => {
     if (saveTimer !== null) {
@@ -221,6 +260,40 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
       });
     }, SAVE_DEBOUNCE_MS);
   };
+
+  const broadcastSquadPot = (pot: SavingsSquadPot): void => {
+    try {
+      if (squadSyncChannel) {
+        squadSyncChannel.postMessage({ type: 'SQUAD_UPDATED', pot });
+      }
+    } catch {
+      // ignore broadcast errors in restricted contexts
+    }
+  };
+
+  if (typeof BroadcastChannel !== 'undefined' && !squadSyncChannel) {
+    try {
+      squadSyncChannel = new BroadcastChannel('aynlytics-squad-sync');
+      squadSyncChannel.onmessage = (event) => {
+        const msg = event?.data;
+        if (msg && msg.type === 'SQUAD_UPDATED' && msg.pot) {
+          const incoming = msg.pot as SavingsSquadPot;
+          const prev = get().data;
+          const existing = prev.savingsSquads ?? [];
+          const merged = mergeSharedSquadPot(existing, incoming);
+          const stamped: VaultData = {
+            ...prev,
+            savingsSquads: merged,
+            updatedAt: new Date().toISOString(),
+          };
+          set({ data: stamped });
+          scheduleSave(stamped);
+        }
+      };
+    } catch {
+      squadSyncChannel = null;
+    }
+  }
 
   const commitData = (
     updater: (prev: VaultData) => VaultData,
@@ -275,34 +348,83 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
       pastStack = [];
       futureStack = [];
 
+      let activeVault: VaultData;
+      let hasPasscode = false;
+      let shouldPersistMigrated = false;
+
       if (stored && Array.isArray(stored.accounts) && Array.isArray(stored.categories)) {
         const normalized = normalizeVaultData(stored);
-        const hasPasscode = Boolean(
+        if ((stored.schemaVersion ?? 1) < 2) {
+          normalized.schemaVersion = 2;
+          normalized.settings = {
+            ...normalized.settings,
+            theme: 'light',
+          };
+          if (!normalized.savingsSquads || normalized.savingsSquads.length === 0) {
+            normalized.savingsSquads = createDefaultSavingsSquads(
+              normalized.settings.baseCurrency,
+            );
+          }
+          shouldPersistMigrated = true;
+        }
+        hasPasscode = Boolean(
           normalized.settings?.passcodeHash && normalized.settings?.passcodeSalt,
         );
-        set({
-          initialized: true,
-          storageMode: mode,
-          data: normalized,
-          locked: hasPasscode,
-          lastSavedAt: normalized.updatedAt ?? null,
-          canUndo: false,
-          canRedo: false,
-        });
-        return;
+        activeVault = normalized;
+      } else {
+        activeVault = createSampleVault();
+        shouldPersistMigrated = true;
       }
 
-      const seeded = createSampleVault();
-      const saveRes = await saveStoredVault(seeded);
+      let syncedFromUrl = false;
+      if (typeof window !== 'undefined') {
+        const urlTokenSource = `${window.location.search || ''} ${window.location.hash || ''}`;
+        if (urlTokenSource.includes('AYNSQ1_')) {
+          const decodedPot = decodeSquadSharePayload(urlTokenSource);
+          if (decodedPot) {
+            activeVault = {
+              ...activeVault,
+              savingsSquads: mergeSharedSquadPot(
+                activeVault.savingsSquads ?? [],
+                decodedPot,
+              ),
+              updatedAt: new Date().toISOString(),
+            };
+            syncedFromUrl = true;
+            shouldPersistMigrated = true;
+            try {
+              window.history.replaceState({}, '', window.location.pathname);
+            } catch {
+              // ignore history replace errors
+            }
+          }
+        }
+      }
+
+      let lastSavedAt = activeVault.updatedAt ?? null;
+      let resolvedMode = mode;
+      if (shouldPersistMigrated) {
+        const saveRes = await saveStoredVault(activeVault);
+        resolvedMode = saveRes.mode;
+        if (saveRes.ok) {
+          lastSavedAt = saveRes.savedAt;
+        }
+      }
+
       set({
         initialized: true,
-        storageMode: saveRes.mode,
-        data: seeded,
-        locked: false,
-        lastSavedAt: saveRes.ok ? saveRes.savedAt : seeded.updatedAt,
+        storageMode: resolvedMode,
+        data: activeVault,
+        locked: hasPasscode,
+        activeNav: syncedFromUrl ? 'squad' : get().activeNav,
+        lastSavedAt,
         canUndo: false,
         canRedo: false,
       });
+
+      if (syncedFromUrl) {
+        get().showToast('Synced Friend Savings Squad pot!', 'success');
+      }
     },
 
     setActiveNav: (nav) => set({ activeNav: nav }),
@@ -363,6 +485,22 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
       }
       const id = generateId('toast');
       set({ toast: { id, message, type, action } });
+
+      try {
+        const sonnerOpts = {
+          action: action ? { label: action.label, onClick: action.onClick } : undefined,
+        };
+        if (type === 'success') {
+          sonnerToast.success(message, sonnerOpts);
+        } else if (type === 'error') {
+          sonnerToast.error(message, sonnerOpts);
+        } else {
+          sonnerToast.info(message, sonnerOpts);
+        }
+      } catch {
+        // ignore if sonner DOM is not mounted yet
+      }
+
       const durationMs = action ? 5500 : 3600;
       toastTimer = setTimeout(() => {
         if (get().toast?.id === id) {
@@ -835,6 +973,197 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
         ...prev,
         savingsGoals: prev.savingsGoals.filter((g) => g.id !== id),
       }));
+    },
+
+    createSavingsSquad: (input) => {
+      const now = new Date().toISOString();
+      const ownerClean = input.ownerName.trim() || 'Ayn Lorebelle';
+      const friendClean = input.friendName.trim() || 'Bestie';
+      const members: SquadMember[] = [
+        {
+          id: generateId('mem'),
+          name: ownerClean,
+          role: 'owner',
+          clayColor: CLAY_MEMBER_COLORS[0].hex,
+          avatarInitials: getInitials(ownerClean),
+        },
+        {
+          id: generateId('mem'),
+          name: friendClean,
+          role: 'friend',
+          clayColor: CLAY_MEMBER_COLORS[1].hex,
+          avatarInitials: getInitials(friendClean),
+        },
+      ];
+
+      const newPot: SavingsSquadPot = {
+        id: generateId('squad'),
+        name: input.name.trim() || 'Besties Shared Pot',
+        emoji: input.emoji.trim() || '🐷',
+        targetAmount: roundMoney(Math.max(100, input.targetAmount)),
+        currency: input.currency,
+        roomCode: generateRoomCode(),
+        members,
+        contributions: [],
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      commitData((prev) => ({
+        ...prev,
+        savingsSquads: [newPot, ...(prev.savingsSquads ?? [])],
+      }));
+
+      broadcastSquadPot(newPot);
+      get().showToast(`Created shared squad "${newPot.name}" (${newPot.roomCode})!`, 'success');
+    },
+
+    deleteSavingsSquad: (potId) => {
+      commitData((prev) => ({
+        ...prev,
+        savingsSquads: (prev.savingsSquads ?? []).filter((p) => p.id !== potId),
+      }));
+      get().showToast('Removed shared savings squad', 'info');
+    },
+
+    addSquadMember: (potId, name, clayColor) => {
+      const cleanName = name.trim();
+      if (!cleanName) return;
+
+      let updatedPot: SavingsSquadPot | null = null;
+      commitData((prev) => {
+        const nextSquads = (prev.savingsSquads ?? []).map((pot) => {
+          if (pot.id !== potId) return pot;
+          const fallbackColor =
+            CLAY_MEMBER_COLORS[pot.members.length % CLAY_MEMBER_COLORS.length].hex;
+          const newMember: SquadMember = {
+            id: generateId('mem'),
+            name: cleanName,
+            role: 'friend',
+            clayColor: clayColor || fallbackColor,
+            avatarInitials: getInitials(cleanName),
+          };
+          updatedPot = {
+            ...pot,
+            members: [...pot.members, newMember],
+            updatedAt: new Date().toISOString(),
+          };
+          return updatedPot;
+        });
+        return {
+          ...prev,
+          savingsSquads: nextSquads,
+        };
+      });
+
+      if (updatedPot) {
+        broadcastSquadPot(updatedPot);
+        get().showToast(`Added ${cleanName} to the savings squad!`, 'success');
+      }
+    },
+
+    addSquadContribution: (potId, input) => {
+      const cleanAmount = roundMoney(Math.abs(input.amount));
+      if (!Number.isFinite(cleanAmount) || cleanAmount <= 0) return;
+
+      const now = new Date().toISOString();
+      let updatedPot: SavingsSquadPot | null = null;
+      let memberName = 'Friend';
+
+      commitData((prev) => {
+        const nextSquads = (prev.savingsSquads ?? []).map((pot) => {
+          if (pot.id !== potId) return pot;
+          const member = pot.members.find((m) => m.id === input.memberId);
+          if (member) {
+            memberName = member.name;
+          }
+          const newContrib: SquadContribution = {
+            id: generateId('sc'),
+            memberId: input.memberId,
+            amount: cleanAmount,
+            date: input.date || todayIso(),
+            note: input.note.trim() || 'Squad savings deposit',
+            createdAt: now,
+          };
+          updatedPot = {
+            ...pot,
+            contributions: [newContrib, ...pot.contributions],
+            updatedAt: now,
+          };
+          return updatedPot;
+        });
+        return {
+          ...prev,
+          savingsSquads: nextSquads,
+        };
+      });
+
+      if (updatedPot) {
+        broadcastSquadPot(updatedPot);
+        get().showToast(
+          `${memberName} added ${cleanAmount.toLocaleString()} to the squad pot!`,
+          'success',
+        );
+      }
+    },
+
+    deleteSquadContribution: (potId, contributionId) => {
+      let updatedPot: SavingsSquadPot | null = null;
+      commitData((prev) => {
+        const nextSquads = (prev.savingsSquads ?? []).map((pot) => {
+          if (pot.id !== potId) return pot;
+          updatedPot = {
+            ...pot,
+            contributions: pot.contributions.filter((c) => c.id !== contributionId),
+            updatedAt: new Date().toISOString(),
+          };
+          return updatedPot;
+        });
+        return {
+          ...prev,
+          savingsSquads: nextSquads,
+        };
+      });
+
+      if (updatedPot) {
+        broadcastSquadPot(updatedPot);
+        get().showToast('Removed squad deposit entry', 'info');
+      }
+    },
+
+    importSharedSquadCode: (rawCodeOrUrl) => {
+      const decoded = decodeSquadSharePayload(rawCodeOrUrl);
+      if (!decoded) {
+        get().showToast(
+          'Invalid squad code or link. Make sure it contains an AYNSQ1_ token.',
+          'error',
+        );
+        return {
+          ok: false,
+          error: 'Invalid squad code or link. Make sure it contains an AYNSQ1_ token.',
+        };
+      }
+
+      let syncedPot: SavingsSquadPot = decoded;
+      commitData((prev) => {
+        const merged = mergeSharedSquadPot(prev.savingsSquads ?? [], decoded);
+        const found = merged.find(
+          (p) =>
+            p.id === decoded.id ||
+            p.roomCode.toUpperCase() === decoded.roomCode.toUpperCase(),
+        );
+        if (found) {
+          syncedPot = found;
+        }
+        return {
+          ...prev,
+          savingsSquads: merged,
+        };
+      });
+
+      broadcastSquadPot(syncedPot);
+      get().showToast(`Synced Friend Savings Squad "${syncedPot.name}"!`, 'success');
+      return { ok: true, potName: syncedPot.name };
     },
 
     addRule: (rule) => {
