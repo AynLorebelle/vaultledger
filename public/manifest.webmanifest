@@ -1,0 +1,20 @@
+{
+  "name": "VaultLedger — Offline Personal Finance",
+  "short_name": "VaultLedger",
+  "description": "100% offline-first personal finance & expense tracker with private local storage, cashflow Sankey, smart budgets, CSV/OFX import, and encrypted backups.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "categories": ["finance", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

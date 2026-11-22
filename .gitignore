@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+release/
+.vercel/
+build/*.ico
+build/*.png
+!build/.gitkeep
+
+# Local env & secrets
+.env
+.env.*
+Personal_Token.env
+*.local
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+npm-debug.log*
+coverage/
