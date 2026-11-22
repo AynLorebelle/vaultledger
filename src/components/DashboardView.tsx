@@ -20,6 +20,7 @@ import {
   Sparkles,
   Info,
   ArrowRight,
+  ArrowUpRight,
   CalendarClock,
   CheckCircle2,
   ChevronRight,
@@ -35,9 +36,12 @@ import {
   computeSpendingHeatmap,
   formatCurrency,
 } from '../core/analytics';
+import type { VaultAnswerDrillAction } from '../types/finance';
+import { AskVaultPanel } from './AskVaultPanel';
+import { FinancialHealthCard } from './FinancialHealthCard';
 import { SankeyChart } from './SankeyChart';
 import { SpendingHeatmap } from './SpendingHeatmap';
-import { CategoryIcon, Money, daysUntil, formatShortDate } from './ui';
+import { CategoryIcon, Money, daysUntil, formatShortDate, getChartTheme } from './ui';
 
 export const DashboardView: React.FC = () => {
   const data = useFinanceStore((s) => s.data);
@@ -45,12 +49,16 @@ export const DashboardView: React.FC = () => {
   const setActiveNav = useFinanceStore((s) => s.setActiveNav);
   const drillDownCategory = useFinanceStore((s) => s.drillDownCategory);
   const drillDownDate = useFinanceStore((s) => s.drillDownDate);
+  const drillDownSearch = useFinanceStore((s) => s.drillDownSearch);
   const markBillPaidAndLog = useFinanceStore((s) => s.markBillPaidAndLog);
 
   const [trendMode, setTrendMode] = useState<'cashflow' | 'networth'>('cashflow');
+  const [askQuery, setAskQuery] = useState('');
 
   const currency = data.settings.baseCurrency;
   const privacyMask = data.settings.privacyMask;
+  const isDark = data.settings.theme === 'dark';
+  const chartTheme = useMemo(() => getChartTheme(isDark), [isDark]);
 
   const kpis = useMemo(() => computeDashboardKPIs(data, timeRange), [data, timeRange]);
   const sankeyGraph = useMemo(() => buildCashflowSankey(data, timeRange), [data, timeRange]);
@@ -60,17 +68,17 @@ export const DashboardView: React.FC = () => {
   const insights = useMemo(() => computeProactiveInsights(data), [data]);
   const recurringSummary = useMemo(
     () => computeRecurringSummary(data.recurringBills),
-    [data.recurringBills]
+    [data.recurringBills],
   );
 
   const upcomingBills = useMemo(
     () => [...recurringSummary.overdue, ...recurringSummary.upcomingSoon].slice(0, 6),
-    [recurringSummary]
+    [recurringSummary],
   );
 
   const topCategories = useMemo(
     () => categorySpends.filter((c) => c.spent > 0 || c.effectiveBudget > 0).slice(0, 6),
-    [categorySpends]
+    [categorySpends],
   );
 
   const budgetProgressPct =
@@ -78,38 +86,79 @@ export const DashboardView: React.FC = () => {
       ? Math.min(100, Math.round((kpis.periodExpenses / kpis.monthlyBudgetTotal) * 100))
       : 0;
 
+  const handleAskDrillDown = (action: VaultAnswerDrillAction) => {
+    if (action.categoryId) {
+      drillDownCategory(action.categoryId);
+    } else if (action.searchQuery) {
+      drillDownSearch(action.searchQuery);
+    } else if (action.date) {
+      drillDownDate(action.date);
+    } else {
+      setActiveNav(action.nav);
+    }
+  };
+
+  const savingsPillStyle: React.CSSProperties =
+    kpis.savingsRate >= 20
+      ? { backgroundColor: 'var(--accent-positive-soft)', color: 'var(--accent-positive)' }
+      : kpis.savingsRate >= 0
+      ? { backgroundColor: 'var(--accent-primary-soft)', color: 'var(--accent-primary-text)' }
+      : { backgroundColor: 'var(--accent-danger-soft)', color: 'var(--accent-danger)' };
+
+  const budgetBarColor =
+    budgetProgressPct >= 100
+      ? 'var(--accent-danger)'
+      : budgetProgressPct >= 80
+      ? 'var(--accent-warning)'
+      : 'var(--accent-primary)';
+
   return (
     <div className="space-y-6">
+      {/* Local Natural-Language Q&A Bar */}
+      <AskVaultPanel
+        vault={data}
+        privacyMask={privacyMask}
+        query={askQuery}
+        onQueryChange={setAskQuery}
+        onDrillDown={handleAskDrillDown}
+      />
+
       {/* Executive KPI Cockpit */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* 1. Safe-to-Spend */}
-        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 shadow-xs flex flex-col justify-between">
+        <div className="tactile-card p-5 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
               Safe-to-Spend
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: 'var(--accent-positive-soft)',
+                color: 'var(--accent-positive)',
+              }}
+              aria-hidden="true"
+            >
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
             <div
-              className={`text-2xl font-bold tracking-tight ${
-                kpis.safeToSpend >= 0
-                  ? 'text-slate-900 dark:text-white'
-                  : 'text-rose-600 dark:text-rose-400'
-              }`}
+              className="text-2xl font-bold tracking-tight tabular-nums"
+              style={{
+                color: kpis.safeToSpend >= 0 ? 'var(--text-primary)' : 'var(--accent-danger)',
+              }}
             >
               <Money amount={kpis.safeToSpend} currency={currency} privacyMask={privacyMask} />
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+            <p className="text-xs text-[var(--text-muted)] mt-1.5">
               Liquid cash{' '}
               <Money
                 amount={kpis.liquidCash}
                 currency={currency}
                 privacyMask={privacyMask}
                 compact
-                className="font-medium text-slate-700 dark:text-slate-300"
+                className="font-semibold text-[var(--text-secondary)]"
               />{' '}
               minus 30d bills &amp; goals
             </p>
@@ -117,30 +166,25 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* 2. Net Cashflow & Savings Rate */}
-        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 shadow-xs flex flex-col justify-between">
+        <div className="tactile-card p-5 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
               Net Cashflow
             </span>
             <span
-              className={`px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums ${
-                kpis.savingsRate >= 20
-                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                  : kpis.savingsRate >= 0
-                  ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
-                  : 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
-              }`}
+              className="px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums whitespace-nowrap"
+              style={savingsPillStyle}
             >
               {kpis.savingsRate.toFixed(1)}% saved
             </span>
           </div>
           <div className="mt-3">
             <div
-              className={`text-2xl font-bold tracking-tight ${
-                kpis.netCashflow >= 0
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-rose-600 dark:text-rose-400'
-              }`}
+              className="text-2xl font-bold tracking-tight tabular-nums"
+              style={{
+                color:
+                  kpis.netCashflow >= 0 ? 'var(--accent-positive)' : 'var(--accent-danger)',
+              }}
             >
               <Money
                 amount={kpis.netCashflow}
@@ -149,54 +193,78 @@ export const DashboardView: React.FC = () => {
                 showSign
               />
             </div>
-            <div className="mt-1.5 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+            <div className="mt-1.5 flex items-center gap-3 text-xs text-[var(--text-muted)]">
               <span className="inline-flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-emerald-500" />
-                <Money amount={kpis.periodIncome} currency={currency} privacyMask={privacyMask} compact />
+                <TrendingUp
+                  className="w-3 h-3"
+                  style={{ color: 'var(--accent-positive)' }}
+                  aria-hidden="true"
+                />
+                <Money
+                  amount={kpis.periodIncome}
+                  currency={currency}
+                  privacyMask={privacyMask}
+                  compact
+                  className="text-[var(--text-secondary)] font-medium"
+                />
               </span>
               <span className="inline-flex items-center gap-1">
-                <TrendingDown className="w-3 h-3 text-rose-500" />
-                <Money amount={kpis.periodExpenses} currency={currency} privacyMask={privacyMask} compact />
+                <TrendingDown
+                  className="w-3 h-3"
+                  style={{ color: 'var(--accent-danger)' }}
+                  aria-hidden="true"
+                />
+                <Money
+                  amount={kpis.periodExpenses}
+                  currency={currency}
+                  privacyMask={privacyMask}
+                  compact
+                  className="text-[var(--text-secondary)] font-medium"
+                />
               </span>
             </div>
           </div>
         </div>
 
         {/* 3. Total Expenses & Burn-Rate Forecast */}
-        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 shadow-xs flex flex-col justify-between">
+        <div className="tactile-card p-5 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
               Total Expenses
             </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/12 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: 'var(--accent-warning-soft)',
+                color: 'var(--accent-warning)',
+              }}
+              aria-hidden="true"
+            >
               <Flame className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <div className="text-2xl font-bold tracking-tight tabular-nums text-[var(--text-primary)]">
               <Money amount={kpis.periodExpenses} currency={currency} privacyMask={privacyMask} />
             </div>
             <div className="mt-2 space-y-1.5">
-              <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div
+                className="w-full h-1.5 rounded-full bg-[var(--bg-subtle)] overflow-hidden"
+                aria-hidden="true"
+              >
                 <div
-                  className={`h-full rounded-full transition-all ${
-                    budgetProgressPct >= 100
-                      ? 'bg-rose-500'
-                      : budgetProgressPct >= 80
-                      ? 'bg-amber-500'
-                      : 'bg-indigo-500'
-                  }`}
-                  style={{ width: `${budgetProgressPct}%` }}
+                  className="h-full rounded-full transition-[width] duration-300"
+                  style={{ width: `${budgetProgressPct}%`, backgroundColor: budgetBarColor }}
                 />
               </div>
-              <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+              <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] tabular-nums">
                 <span>
                   Burn:{' '}
                   <Money
                     amount={kpis.dailyBurnRate}
                     currency={currency}
                     privacyMask={privacyMask}
-                    className="font-medium text-slate-700 dark:text-slate-300"
+                    className="font-semibold text-[var(--text-secondary)]"
                   />
                   /d
                 </span>
@@ -207,7 +275,7 @@ export const DashboardView: React.FC = () => {
                     currency={currency}
                     privacyMask={privacyMask}
                     compact
-                    className="font-medium text-slate-700 dark:text-slate-300"
+                    className="font-semibold text-[var(--text-secondary)]"
                   />
                 </span>
               </div>
@@ -215,21 +283,28 @@ export const DashboardView: React.FC = () => {
           </div>
         </div>
 
-        {/* 4. Total Net Worth */}
-        <div className="rounded-2xl p-5 bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 shadow-xs flex flex-col justify-between">
+        {/* 4. Total Net Worth + Forecast Lab CTA */}
+        <div className="tactile-card p-5 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
               Total Net Worth
             </span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/12 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: 'var(--accent-primary-soft)',
+                color: 'var(--accent-primary-text)',
+              }}
+              aria-hidden="true"
+            >
               <Landmark className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <div className="text-2xl font-bold tracking-tight tabular-nums text-[var(--text-primary)]">
               <Money amount={kpis.totalNetWorth} currency={currency} privacyMask={privacyMask} />
             </div>
-            <div className="mt-1.5 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+            <div className="mt-1.5 flex items-center gap-2.5 text-xs text-[var(--text-muted)]">
               <span>
                 Cash:{' '}
                 <Money
@@ -237,10 +312,12 @@ export const DashboardView: React.FC = () => {
                   currency={currency}
                   privacyMask={privacyMask}
                   compact
-                  className="font-medium text-emerald-600 dark:text-emerald-400"
+                  className="font-semibold text-[var(--accent-positive)]"
                 />
               </span>
-              <span>•</span>
+              <span className="text-[var(--border-strong)]" aria-hidden="true">
+                •
+              </span>
               <span>
                 Debt:{' '}
                 <Money
@@ -248,9 +325,19 @@ export const DashboardView: React.FC = () => {
                   currency={currency}
                   privacyMask={privacyMask}
                   compact
-                  className="font-medium text-rose-600 dark:text-rose-400"
+                  className="font-semibold text-[var(--accent-danger)]"
                 />
               </span>
+            </div>
+            <div className="mt-2.5 pt-2 border-t border-[var(--border-hairline)]">
+              <button
+                type="button"
+                onClick={() => setActiveNav('forecast')}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--accent-primary-text)] hover:underline cursor-pointer"
+              >
+                <span>Open Forecast Lab</span>
+                <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
             </div>
           </div>
         </div>
@@ -266,18 +353,18 @@ export const DashboardView: React.FC = () => {
                 : ins.severity === 'positive'
                 ? Sparkles
                 : Info;
-            const toneClass =
+            const accentColor =
               ins.severity === 'warning'
-                ? 'border-l-amber-500 bg-amber-500/5 dark:bg-amber-500/8 border-amber-500/20'
+                ? 'var(--accent-warning)'
                 : ins.severity === 'positive'
-                ? 'border-l-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/8 border-emerald-500/20'
-                : 'border-l-indigo-500 bg-indigo-500/5 dark:bg-indigo-500/8 border-indigo-500/20';
-            const iconColor =
+                ? 'var(--accent-positive)'
+                : 'var(--accent-info)';
+            const accentSoft =
               ins.severity === 'warning'
-                ? 'text-amber-500'
+                ? 'var(--accent-warning-soft)'
                 : ins.severity === 'positive'
-                ? 'text-emerald-500'
-                : 'text-indigo-500';
+                ? 'var(--accent-positive-soft)'
+                : 'var(--accent-info-soft)';
 
             return (
               <button
@@ -290,23 +377,34 @@ export const DashboardView: React.FC = () => {
                     setActiveNav(ins.actionTarget);
                   }
                 }}
-                className={`text-left rounded-xl border border-l-4 p-3.5 transition-all hover:translate-y-[-1px] cursor-pointer ${toneClass}`}
+                className="tactile-card text-left p-3.5 transition-all hover:border-[var(--border-strong)] hover:-translate-y-px cursor-pointer"
+                style={{ borderLeftWidth: '3px', borderLeftColor: accentColor }}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Icon className={`w-4 h-4 shrink-0 ${iconColor}`} />
-                    <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                    <span
+                      className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: accentSoft, color: accentColor }}
+                      aria-hidden="true"
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                    </span>
+                    <span className="text-xs font-semibold text-[var(--text-primary)] truncate">
                       {ins.title}
                     </span>
                   </div>
                   {ins.actionLabel && (
-                    <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 shrink-0">
+                    <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-[var(--accent-primary-text)] shrink-0">
                       {ins.actionLabel}
-                      <ArrowRight className="w-3 h-3" />
+                      <ArrowRight className="w-3 h-3" aria-hidden="true" />
                     </span>
                   )}
                 </div>
-                <p className={`text-xs text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 ${privacyMask ? 'privacy-blur' : ''}`}>
+                <p
+                  className={`text-xs text-[var(--text-secondary)] mt-1.5 line-clamp-2 ${
+                    privacyMask ? 'privacy-blur' : ''
+                  }`}
+                >
                   {ins.detail}
                 </p>
               </button>
@@ -315,25 +413,32 @@ export const DashboardView: React.FC = () => {
         </section>
       )}
 
+      {/* Financial Health Score Card */}
+      <FinancialHealthCard
+        vault={data}
+        privacyMask={privacyMask}
+        onNavigate={setActiveNav}
+      />
+
       {/* Hero Cashflow Sankey Diagram */}
-      <section className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-5 shadow-xs">
+      <section className="tactile-card p-5 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div>
-            <h2 className="text-base font-semibold text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
               Cashflow Sankey
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-[var(--text-muted)]">
               Follow every dollar from income sources into Needs, Wants, and Savings · Click any category to drill down
             </p>
           </div>
-          <div className="flex items-center gap-3 text-xs">
-            <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="tactile-well px-2.5 py-1 text-[var(--text-secondary)]">
               Inflow:{' '}
               <Money
                 amount={sankeyGraph.totalIncome}
                 currency={currency}
                 privacyMask={privacyMask}
-                className="font-semibold text-emerald-600 dark:text-emerald-400"
+                className="font-semibold text-[var(--accent-positive)]"
               />
             </span>
           </div>
@@ -349,100 +454,156 @@ export const DashboardView: React.FC = () => {
       {/* Trends + Top Categories Row */}
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Income vs Expenses / Net Worth Chart */}
-        <div className="xl:col-span-2 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-5 shadow-xs">
+        <div className="xl:col-span-2 min-w-0 tactile-card p-5">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+              <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
                 {trendMode === 'cashflow' ? '6-Month Cashflow Trend' : 'Net Worth Trajectory'}
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-[var(--text-muted)]">
                 {trendMode === 'cashflow'
                   ? 'Monthly income vs. net expenses (refunds offset automatically)'
                   : 'Historical combined assets minus liabilities'}
               </p>
             </div>
-            <div className="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setTrendMode('cashflow')}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                  trendMode === 'cashflow'
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
+            <div className="flex flex-wrap items-center gap-2">
+              {trendMode === 'networth' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveNav('forecast')}
+                  className="tactile-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[var(--accent-primary-text)] cursor-pointer"
+                >
+                  <span>Open Forecast Lab</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+              )}
+              <div
+                role="tablist"
+                aria-label="Trend chart mode"
+                className="tactile-well inline-flex items-center p-1 gap-1"
               >
-                Cashflow Bars
-              </button>
-              <button
-                type="button"
-                onClick={() => setTrendMode('networth')}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                  trendMode === 'networth'
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                }`}
-              >
-                Net Worth Area
-              </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={trendMode === 'cashflow'}
+                  onClick={() => setTrendMode('cashflow')}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                    trendMode === 'cashflow'
+                      ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-hairline)] shadow-xs'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-transparent'
+                  }`}
+                >
+                  Cashflow Bars
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={trendMode === 'networth'}
+                  onClick={() => setTrendMode('networth')}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                    trendMode === 'networth'
+                      ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-hairline)] shadow-xs'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-transparent'
+                  }`}
+                >
+                  Net Worth Area
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="h-[260px] w-full">
+          {trendMode === 'cashflow' && (
+            <div className="flex items-center gap-4 mb-2 text-[11px] text-[var(--text-muted)]">
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="w-2.5 h-2.5 rounded-xs"
+                  style={{ backgroundColor: chartTheme.positive }}
+                  aria-hidden="true"
+                />
+                Income
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="w-2.5 h-2.5 rounded-xs"
+                  style={{ backgroundColor: chartTheme.secondary }}
+                  aria-hidden="true"
+                />
+                Expenses
+              </span>
+            </div>
+          )}
+
+          <div className="h-[260px] w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               {trendMode === 'cashflow' ? (
                 <BarChart data={monthlyTrends} barGap={6}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.16)" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} vertical={false} />
                   <XAxis
                     dataKey="label"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    tick={{ fontSize: 11, fill: chartTheme.tick }}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    tick={{ fontSize: 11, fill: chartTheme.tick }}
                     tickFormatter={(v: number) =>
                       privacyMask ? '••' : formatCurrency(v, currency, true)
                     }
                     width={58}
                   />
                   <Tooltip
-                    cursor={{ fill: 'rgba(99,102,241,0.06)' }}
+                    cursor={{ fill: chartTheme.primaryFill }}
                     contentStyle={{
-                      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                      border: '1px solid rgba(51, 65, 85, 0.8)',
+                      backgroundColor: chartTheme.tooltipBg,
+                      border: `1px solid ${chartTheme.tooltipBorder}`,
                       borderRadius: '12px',
                       fontSize: '12px',
-                      color: '#f8fafc',
+                      color: chartTheme.tooltipText,
+                      boxShadow: 'var(--shadow-elevated)',
                     }}
+                    labelStyle={{ color: chartTheme.tooltipMuted, fontWeight: 600 }}
+                    itemStyle={{ color: chartTheme.tooltipText }}
                     formatter={(val: number, name: string) => [
                       privacyMask ? '••••••' : formatCurrency(val, currency),
                       name === 'income' ? 'Income' : 'Expenses',
                     ]}
                   />
-                  <Bar dataKey="income" name="income" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={32} />
-                  <Bar dataKey="expenses" name="expenses" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={32} />
+                  <Bar
+                    dataKey="income"
+                    name="income"
+                    fill={chartTheme.positive}
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={32}
+                  />
+                  <Bar
+                    dataKey="expenses"
+                    name="expenses"
+                    fill={chartTheme.secondary}
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={32}
+                  />
                 </BarChart>
               ) : (
                 <AreaChart data={monthlyTrends}>
                   <defs>
                     <linearGradient id="nwGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.38} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                      <stop offset="5%" stopColor={chartTheme.primary} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={chartTheme.primary} stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.16)" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} vertical={false} />
                   <XAxis
                     dataKey="label"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    tick={{ fontSize: 11, fill: chartTheme.tick }}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    tick={{ fontSize: 11, fill: chartTheme.tick }}
                     tickFormatter={(v: number) =>
                       privacyMask ? '••' : formatCurrency(v, currency, true)
                     }
@@ -450,12 +611,15 @@ export const DashboardView: React.FC = () => {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                      border: '1px solid rgba(51, 65, 85, 0.8)',
+                      backgroundColor: chartTheme.tooltipBg,
+                      border: `1px solid ${chartTheme.tooltipBorder}`,
                       borderRadius: '12px',
                       fontSize: '12px',
-                      color: '#f8fafc',
+                      color: chartTheme.tooltipText,
+                      boxShadow: 'var(--shadow-elevated)',
                     }}
+                    labelStyle={{ color: chartTheme.tooltipMuted, fontWeight: 600 }}
+                    itemStyle={{ color: chartTheme.tooltipText }}
                     formatter={(val: number) => [
                       privacyMask ? '••••••' : formatCurrency(val, currency),
                       'Net Worth',
@@ -464,7 +628,7 @@ export const DashboardView: React.FC = () => {
                   <Area
                     type="monotone"
                     dataKey="netWorth"
-                    stroke="#6366f1"
+                    stroke={chartTheme.primary}
                     strokeWidth={2.5}
                     fill="url(#nwGrad)"
                   />
@@ -475,31 +639,33 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* Top Categories Breakdown */}
-        <div className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-5 shadow-xs flex flex-col">
-          <div className="flex items-center justify-between mb-4">
+        <div className="tactile-card p-5 flex flex-col min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-4">
             <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+              <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
                 Top Categories
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-[var(--text-muted)]">
                 Click any category to inspect transactions
               </p>
             </div>
             <button
               type="button"
               onClick={() => setActiveNav('budgets')}
-              className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5 cursor-pointer"
+              className="text-xs font-semibold text-[var(--accent-primary-text)] hover:underline inline-flex items-center gap-0.5 cursor-pointer shrink-0"
             >
               Budgets
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           </div>
 
           <div className="space-y-3 flex-1">
             {topCategories.length === 0 ? (
-              <p className="text-xs text-slate-400 py-8 text-center">
-                No categorized spending recorded in this period.
-              </p>
+              <div className="tactile-well py-8 px-4 text-center">
+                <p className="text-xs text-[var(--text-muted)]">
+                  No categorized spending recorded in this period.
+                </p>
+              </div>
             ) : (
               topCategories.map((cat) => {
                 const over = cat.effectiveBudget > 0 && cat.spent > cat.effectiveBudget;
@@ -512,17 +678,18 @@ export const DashboardView: React.FC = () => {
                     key={cat.categoryId}
                     type="button"
                     onClick={() => drillDownCategory(cat.categoryId)}
-                    className="w-full text-left group p-2 -mx-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                    className="w-full text-left group p-2 -mx-2 rounded-xl hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer"
                   >
                     <div className="flex items-center justify-between gap-2 text-xs">
                       <span className="flex items-center gap-2 min-w-0">
                         <span
                           className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
                           style={{ backgroundColor: `${cat.color}20`, color: cat.color }}
+                          aria-hidden="true"
                         >
                           <CategoryIcon icon={cat.icon} className="w-3.5 h-3.5" />
                         </span>
-                        <span className="font-medium text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                        <span className="font-medium text-[var(--text-primary)] truncate group-hover:text-[var(--accent-primary-text)] transition-colors">
                           {cat.categoryName}
                         </span>
                       </span>
@@ -532,13 +699,11 @@ export const DashboardView: React.FC = () => {
                           currency={currency}
                           privacyMask={privacyMask}
                           className={`font-semibold ${
-                            over
-                              ? 'text-rose-600 dark:text-rose-400'
-                              : 'text-slate-900 dark:text-slate-100'
+                            over ? 'text-[var(--accent-danger)]' : 'text-[var(--text-primary)]'
                           }`}
                         />
                         {cat.effectiveBudget > 0 && (
-                          <span className="text-slate-400">
+                          <span className="text-[var(--text-muted)]">
                             {' '}
                             /{' '}
                             <Money
@@ -551,12 +716,12 @@ export const DashboardView: React.FC = () => {
                         )}
                       </span>
                     </div>
-                    <div className="mt-1.5 h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div className="mt-1.5 h-1.5 w-full rounded-full bg-[var(--bg-subtle)] overflow-hidden">
                       <div
-                        className="h-full rounded-full transition-all"
+                        className="h-full rounded-full transition-[width] duration-300"
                         style={{
                           width: `${pct}%`,
-                          backgroundColor: over ? '#f43f5e' : cat.color,
+                          backgroundColor: over ? 'var(--accent-danger)' : cat.color,
                         }}
                       />
                     </div>
@@ -570,12 +735,12 @@ export const DashboardView: React.FC = () => {
 
       {/* Bottom Row: Spending Heatmap + Upcoming Bills */}
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <div className="xl:col-span-2 rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-5 shadow-xs">
+        <div className="xl:col-span-2 min-w-0 tactile-card p-5">
           <div className="mb-4">
-            <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+            <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
               Daily Spending Heatmap
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-[var(--text-muted)]">
               Last 16 weeks of spending intensity · Spot no-spend streaks and spike days instantly
             </p>
           </div>
@@ -588,18 +753,21 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* Upcoming Bills Next 14 Days */}
-        <div className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-5 shadow-xs flex flex-col">
-          <div className="flex items-center justify-between mb-4">
+        <div className="tactile-card p-5 flex flex-col min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-4">
             <div className="flex items-center gap-2">
-              <CalendarClock className="w-4 h-4 text-indigo-500" />
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+              <CalendarClock
+                className="w-4 h-4 text-[var(--accent-primary-text)] shrink-0"
+                aria-hidden="true"
+              />
+              <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
                 Upcoming Bills (14d)
               </h2>
             </div>
             <button
               type="button"
               onClick={() => setActiveNav('recurring')}
-              className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+              className="text-xs font-semibold text-[var(--accent-primary-text)] hover:underline cursor-pointer shrink-0"
             >
               View all
             </button>
@@ -607,9 +775,13 @@ export const DashboardView: React.FC = () => {
 
           <div className="space-y-2.5 flex-1">
             {upcomingBills.length === 0 ? (
-              <div className="py-10 text-center">
-                <CheckCircle2 className="w-7 h-7 text-emerald-500 mx-auto mb-2 opacity-80" />
-                <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+              <div className="tactile-well py-10 px-4 text-center">
+                <CheckCircle2
+                  className="w-7 h-7 mx-auto mb-2"
+                  style={{ color: 'var(--accent-positive)' }}
+                  aria-hidden="true"
+                />
+                <p className="text-xs font-semibold text-[var(--text-primary)]">
                   All clear for the next 14 days
                 </p>
               </div>
@@ -623,29 +795,33 @@ export const DashboardView: React.FC = () => {
                   ? 'Due today'
                   : `In ${diff}d`;
 
+                const badgeStyle: React.CSSProperties = overdue
+                  ? { backgroundColor: 'var(--accent-danger-soft)', color: 'var(--accent-danger)' }
+                  : diff <= 3
+                  ? {
+                      backgroundColor: 'var(--accent-warning-soft)',
+                      color: 'var(--accent-warning)',
+                    }
+                  : { backgroundColor: 'var(--bg-surface)', color: 'var(--text-muted)' };
+
                 return (
                   <div
                     key={bill.id}
-                    className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80"
+                    className="tactile-well flex items-center justify-between gap-3 p-3"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                        <span className="text-xs font-semibold text-[var(--text-primary)] truncate">
                           {bill.name}
                         </span>
                         <span
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 ${
-                            overdue
-                              ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
-                              : diff <= 3
-                              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
-                              : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                          }`}
+                          className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold shrink-0 tabular-nums"
+                          style={badgeStyle}
                         >
                           {dueLabel}
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
+                      <div className="text-[11px] text-[var(--text-muted)] mt-0.5 tabular-nums">
                         {formatShortDate(bill.nextDueDate)}
                         {bill.autoPay ? ' · Auto-pay' : ''}
                       </div>
@@ -658,15 +834,16 @@ export const DashboardView: React.FC = () => {
                         privacyMask={privacyMask}
                         className={`text-xs font-semibold ${
                           bill.type === 'income'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-slate-900 dark:text-slate-100'
+                            ? 'text-[var(--accent-positive)]'
+                            : 'text-[var(--text-primary)]'
                         }`}
                       />
                       <button
                         type="button"
                         onClick={() => markBillPaidAndLog(bill.id)}
-                        className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium transition-colors cursor-pointer"
+                        className="tactile-btn-primary px-2.5 py-1 rounded-lg text-[11px] font-semibold cursor-pointer"
                         title="Log transaction and advance next due date"
+                        aria-label={`Pay and log ${bill.name}`}
                       >
                         Pay &amp; Log
                       </button>

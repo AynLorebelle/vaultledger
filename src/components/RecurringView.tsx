@@ -254,23 +254,28 @@ export const RecurringView: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
             Recurring Bills &amp; Subscriptions
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
             Track fixed bills, subscription creep, and paydays with 1-click logging
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center p-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <div
+            role="group"
+            aria-label="Recurring view mode"
+            className="tactile-well flex items-center p-1 gap-1"
+          >
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+              aria-pressed={viewMode === 'list'}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 viewMode === 'list'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'tactile-btn-primary'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               <List className="w-3.5 h-3.5" />
@@ -279,10 +284,11 @@ export const RecurringView: React.FC = () => {
             <button
               type="button"
               onClick={() => setViewMode('calendar')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+              aria-pressed={viewMode === 'calendar'}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 viewMode === 'calendar'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'tactile-btn-primary'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               <CalendarIcon className="w-3.5 h-3.5" />
@@ -293,7 +299,7 @@ export const RecurringView: React.FC = () => {
           <button
             type="button"
             onClick={openNewModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm cursor-pointer"
+            className="tactile-btn-primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Recurring</span>
@@ -303,36 +309,39 @@ export const RecurringView: React.FC = () => {
 
       {/* KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="rounded-2xl p-4 bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80">
-          <div className="text-xs text-slate-500 dark:text-slate-400">Monthly Recurring Total</div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
+        <div className="tactile-card p-4">
+          <div className="text-xs text-[var(--text-muted)]">Monthly Recurring Total</div>
+          <div className="text-2xl font-bold text-[var(--text-primary)] mt-1 tabular-nums">
             <Money amount={summary.monthlyTotal} currency={currency} privacyMask={privacyMask} />
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">Normalized monthly outflow</div>
+          <div className="text-[11px] text-[var(--text-muted)] mt-1">Normalized monthly outflow</div>
         </div>
 
-        <div className="rounded-2xl p-4 bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80">
-          <div className="text-xs text-slate-500 dark:text-slate-400">Annualized Commitment</div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
+        <div className="tactile-card p-4">
+          <div className="text-xs text-[var(--text-muted)]">Annualized Commitment</div>
+          <div className="text-2xl font-bold text-[var(--text-primary)] mt-1 tabular-nums">
             <Money amount={summary.yearlyTotal} currency={currency} privacyMask={privacyMask} />
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">Projected 12-month cost</div>
+          <div className="text-[11px] text-[var(--text-muted)] mt-1">Projected 12-month cost</div>
         </div>
 
-        <div className="rounded-2xl p-4 bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80">
-          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <Repeat className="w-3.5 h-3.5 text-amber-500" />
+        <div className="tactile-card p-4">
+          <div className="text-xs text-[var(--text-muted)] flex items-center gap-1.5">
+            <Repeat className="w-3.5 h-3.5" style={{ color: 'var(--accent-warning)' }} />
             <span>Subscription Creep</span>
           </div>
-          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">
+          <div
+            className="text-2xl font-bold mt-1 tabular-nums"
+            style={{ color: 'var(--accent-warning)' }}
+          >
             <Money
               amount={summary.subscriptionMonthly}
               currency={currency}
               privacyMask={privacyMask}
             />
-            <span className="text-xs font-normal text-slate-400"> /mo</span>
+            <span className="text-xs font-normal text-[var(--text-muted)]"> /mo</span>
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">
+          <div className="text-[11px] text-[var(--text-muted)] mt-1 tabular-nums">
             <Money
               amount={summary.subscriptionMonthly * 12}
               currency={currency}
@@ -342,21 +351,20 @@ export const RecurringView: React.FC = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl p-4 bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80">
-          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+        <div className="tactile-card p-4">
+          <div className="text-xs text-[var(--text-muted)] flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5" style={{ color: 'var(--accent-danger)' }} />
             <span>Overdue Bills</span>
           </div>
           <div
-            className={`text-2xl font-bold mt-1 tabular-nums ${
-              summary.overdue.length > 0
-                ? 'text-rose-600 dark:text-rose-400'
-                : 'text-emerald-600 dark:text-emerald-400'
-            }`}
+            className="text-2xl font-bold mt-1 tabular-nums"
+            style={{
+              color: summary.overdue.length > 0 ? 'var(--accent-danger)' : 'var(--accent-positive)',
+            }}
           >
             {summary.overdue.length}
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">
+          <div className="text-[11px] text-[var(--text-muted)] mt-1 tabular-nums">
             {summary.upcomingSoon.length} more due within 14 days
           </div>
         </div>
@@ -364,71 +372,98 @@ export const RecurringView: React.FC = () => {
 
       {/* Main Content: List OR Calendar */}
       {viewMode === 'list' ? (
-        <div className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 overflow-hidden shadow-xs">
+        <div className="tactile-card overflow-hidden">
           {sortedBills.length === 0 ? (
             <div className="p-10 text-center">
-              <CalendarClock className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <CalendarClock className="w-8 h-8 text-[var(--text-muted)] mx-auto mb-3 opacity-60" />
+              <p className="text-sm font-semibold text-[var(--text-primary)]">
                 No recurring bills or paydays configured
               </p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-[var(--text-muted)] mt-1">
                 Add rent, subscriptions, or paychecks to power Safe-to-Spend forecasting.
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+            <div className="divide-y divide-[var(--border-hairline)]">
               {sortedBills.map((bill) => {
                 const diff = daysUntil(bill.nextDueDate);
                 const overdue = bill.active && diff < 0;
+                const dueSoon = bill.active && diff >= 0 && diff <= 7;
                 const cat = categoryMap.get(bill.categoryId);
                 const acc = accountMap.get(bill.accountId);
 
                 return (
                   <div
                     key={bill.id}
-                    className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors ${
-                      bill.active ? '' : 'opacity-55 bg-slate-50/50 dark:bg-slate-950/30'
+                    className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors hover:bg-[var(--bg-surface-hover)] ${
+                      bill.active ? '' : 'opacity-60 bg-[var(--bg-subtle)]'
                     }`}
                   >
                     <div className="flex items-start gap-3 min-w-0">
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-xs"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-xs border border-[var(--border-hairline)]"
                         style={{
-                          backgroundColor: `${cat?.color ?? '#6366f1'}1c`,
-                          color: cat?.color ?? '#6366f1',
+                          backgroundColor: `${cat?.color ?? '#1B4D3E'}1c`,
+                          color: cat?.color ?? 'var(--accent-primary-text)',
                         }}
                       >
                         {bill.type === 'income' ? '+' : bill.isSubscription ? 'SUB' : 'BILL'}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          <span className="text-sm font-semibold text-[var(--text-primary)]">
                             {bill.name}
                           </span>
-                          <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                          <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[10px] font-semibold text-[var(--text-secondary)]">
                             {FREQ_LABELS[bill.frequency]}
                           </span>
                           {bill.isSubscription && (
-                            <span className="px-2 py-0.5 rounded-md bg-amber-500/12 text-amber-700 dark:text-amber-300 text-[10px] font-semibold">
+                            <span
+                              className="px-2 py-0.5 rounded-md text-[10px] font-semibold"
+                              style={{
+                                backgroundColor: 'var(--accent-warning-soft)',
+                                color: 'var(--accent-warning)',
+                              }}
+                            >
                               Subscription
                             </span>
                           )}
                           {bill.autoPay && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 text-[10px] font-medium">
+                            <span
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold"
+                              style={{
+                                backgroundColor: 'var(--accent-primary-soft)',
+                                color: 'var(--accent-primary-text)',
+                              }}
+                            >
                               <Zap className="w-2.5 h-2.5" />
                               Auto-pay
                             </span>
                           )}
                           {!bill.active && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-500 text-[10px] font-semibold">
+                            <span className="px-1.5 py-0.5 rounded-md bg-[var(--bg-inset)] text-[var(--text-muted)] text-[10px] font-semibold">
                               Paused
                             </span>
                           )}
                         </div>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
                           <span
-                            className={
-                              overdue ? 'text-rose-600 dark:text-rose-400 font-semibold' : ''
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium tabular-nums"
+                            style={
+                              overdue
+                                ? {
+                                    backgroundColor: 'var(--accent-danger-soft)',
+                                    color: 'var(--accent-danger)',
+                                  }
+                                : dueSoon
+                                ? {
+                                    backgroundColor: 'var(--accent-warning-soft)',
+                                    color: 'var(--accent-warning)',
+                                  }
+                                : {
+                                    backgroundColor: 'var(--bg-subtle)',
+                                    color: 'var(--text-secondary)',
+                                  }
                             }
                           >
                             Next: {formatShortDate(bill.nextDueDate)}
@@ -440,7 +475,7 @@ export const RecurringView: React.FC = () => {
                                 : ` (in ${diff}d)`)}
                           </span>
                           <span>•</span>
-                          <span>{cat?.name ?? 'Category'}</span>
+                          <span className="text-[var(--text-secondary)]">{cat?.name ?? 'Category'}</span>
                           {acc && (
                             <>
                               <span>•</span>
@@ -459,8 +494,8 @@ export const RecurringView: React.FC = () => {
                         showSign
                         className={`text-sm font-bold ${
                           bill.type === 'income'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-slate-900 dark:text-white'
+                            ? 'text-[var(--accent-positive)]'
+                            : 'text-[var(--text-primary)]'
                         }`}
                       />
 
@@ -469,7 +504,7 @@ export const RecurringView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handlePayAndLog(bill)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors cursor-pointer"
+                            className="tactile-btn-primary inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>Mark Paid &amp; Log</span>
@@ -480,24 +515,25 @@ export const RecurringView: React.FC = () => {
                           onClick={() =>
                             updateRecurringBill(bill.id, { active: !bill.active })
                           }
-                          className="p-2 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                          className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
                           title={bill.active ? 'Pause recurring bill' : 'Resume recurring bill'}
+                          aria-label={bill.active ? `Pause ${bill.name}` : `Resume ${bill.name}`}
                         >
                           {bill.active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                         </button>
                         <button
                           type="button"
                           onClick={() => openEditModal(bill)}
-                          className="p-2 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                          aria-label="Edit recurring bill"
+                          className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+                          aria-label={`Edit ${bill.name}`}
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
                           type="button"
                           onClick={() => deleteRecurringBill(bill.id)}
-                          className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer"
-                          aria-label="Delete recurring bill"
+                          className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-danger)] hover:bg-[var(--accent-danger-soft)] transition-colors cursor-pointer"
+                          aria-label={`Delete ${bill.name}`}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -511,42 +547,56 @@ export const RecurringView: React.FC = () => {
         </div>
       ) : (
         /* Interactive Monthly Bill Calendar View */
-        <div className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-5 shadow-xs space-y-4">
+        <div className="tactile-card p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => shiftMonth(-1)}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                aria-label="Previous month"
+                className="tactile-btn p-1.5 rounded-lg cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white min-w-[150px] text-center">
+              <h2 className="text-base font-bold text-[var(--text-primary)] min-w-[160px] text-center tabular-nums">
                 {calendarData.monthTitle}
               </h2>
               <button
                 type="button"
                 onClick={() => shiftMonth(1)}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                aria-label="Next month"
+                className="tactile-btn p-1.5 rounded-lg cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-3 text-xs text-[var(--text-secondary)]">
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Payday
+                <span
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: 'var(--accent-positive)' }}
+                />
+                Payday
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" /> Fixed Bill
+                <span
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: 'var(--accent-primary)' }}
+                />
+                Fixed Bill
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Subscription
+                <span
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: 'var(--accent-warning)' }}
+                />
+                Subscription
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-1.5 text-center text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <div className="grid grid-cols-7 gap-1.5 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
               <div key={d} className="py-1">
                 {d}
@@ -558,32 +608,43 @@ export const RecurringView: React.FC = () => {
             {calendarData.cells.map((cell, idx) => (
               <div
                 key={idx}
-                className={`min-h-[92px] rounded-xl p-2 border transition-colors ${
-                  cell.day
-                    ? 'bg-slate-50/70 dark:bg-slate-950/60 border-slate-200/80 dark:border-slate-800/80'
-                    : 'bg-transparent border-transparent'
+                className={`min-h-[92px] rounded-xl p-2 transition-colors ${
+                  cell.day ? 'tactile-well' : 'bg-transparent border border-transparent'
                 }`}
               >
                 {cell.day && (
                   <>
-                    <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums mb-1.5">
+                    <div className="text-xs font-semibold text-[var(--text-muted)] tabular-nums mb-1.5">
                       {cell.day}
                     </div>
                     <div className="space-y-1">
                       {cell.bills.map((b) => {
-                        const pillTone =
+                        const pillStyle: React.CSSProperties =
                           b.type === 'income'
-                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/25'
+                            ? {
+                                backgroundColor: 'var(--accent-positive-soft)',
+                                color: 'var(--accent-positive)',
+                                borderColor: 'var(--accent-positive)',
+                              }
                             : b.isSubscription
-                            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/25'
-                            : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/25';
+                            ? {
+                                backgroundColor: 'var(--accent-warning-soft)',
+                                color: 'var(--accent-warning)',
+                                borderColor: 'var(--accent-warning)',
+                              }
+                            : {
+                                backgroundColor: 'var(--accent-primary-soft)',
+                                color: 'var(--accent-primary-text)',
+                                borderColor: 'var(--accent-primary)',
+                              };
 
                         return (
                           <button
                             key={b.id}
                             type="button"
                             onClick={() => openEditModal(b)}
-                            className={`w-full text-left px-1.5 py-1 rounded-md border text-[10px] font-medium leading-tight truncate cursor-pointer hover:brightness-110 ${pillTone}`}
+                            style={pillStyle}
+                            className="w-full text-left px-1.5 py-1 rounded-md border text-[10px] font-medium leading-tight truncate cursor-pointer hover:opacity-90 transition-opacity"
                             title={`${b.name} (${b.amount}) — Click to edit`}
                           >
                             <div className="truncate font-semibold">{b.name}</div>
@@ -591,7 +652,7 @@ export const RecurringView: React.FC = () => {
                               amount={b.amount}
                               currency={currency}
                               privacyMask={privacyMask}
-                              className="opacity-85"
+                              className="opacity-90"
                             />
                           </button>
                         );
@@ -614,27 +675,44 @@ export const RecurringView: React.FC = () => {
       >
         <form onSubmit={handleSave} className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-2">
-            {(['expense', 'income'] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setDraft({ ...draft, type: t })}
-                className={`py-2 rounded-xl border text-xs font-semibold capitalize cursor-pointer ${
-                  draft.type === t
-                    ? t === 'income'
-                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
-                      : 'bg-indigo-500/15 border-indigo-500/40 text-indigo-700 dark:text-indigo-300'
-                    : 'border-slate-200 dark:border-slate-800 text-slate-500'
-                }`}
-              >
-                {t === 'expense' ? 'Recurring Bill / Sub' : 'Recurring Income / Payday'}
-              </button>
-            ))}
+            {(['expense', 'income'] as const).map((t) => {
+              const active = draft.type === t;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setDraft({ ...draft, type: t })}
+                  aria-pressed={active}
+                  style={
+                    active
+                      ? t === 'income'
+                        ? {
+                            backgroundColor: 'var(--accent-positive-soft)',
+                            borderColor: 'var(--accent-positive)',
+                            color: 'var(--accent-positive)',
+                          }
+                        : {
+                            backgroundColor: 'var(--accent-primary-soft)',
+                            borderColor: 'var(--accent-primary)',
+                            color: 'var(--accent-primary-text)',
+                          }
+                      : undefined
+                  }
+                  className={`py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors ${
+                    active
+                      ? ''
+                      : 'border-[var(--border-hairline)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
+                  }`}
+                >
+                  {t === 'expense' ? 'Recurring Bill / Sub' : 'Recurring Income / Payday'}
+                </button>
+              );
+            })}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Name
               </label>
               <input
@@ -643,11 +721,11 @@ export const RecurringView: React.FC = () => {
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 placeholder="e.g. Spotify Duo, Apartment Rent"
                 required
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                className="tactile-input w-full px-3 py-2 text-sm"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Amount ({currency})
               </label>
               <input
@@ -657,14 +735,14 @@ export const RecurringView: React.FC = () => {
                 value={draft.amount}
                 onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
                 required
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm tabular-nums outline-none focus:border-indigo-500"
+                className="tactile-input w-full px-3 py-2 text-sm tabular-nums"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Frequency
               </label>
               <select
@@ -672,7 +750,7 @@ export const RecurringView: React.FC = () => {
                 onChange={(e) =>
                   setDraft({ ...draft, frequency: e.target.value as RecurrenceFrequency })
                 }
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm"
               >
                 {Object.entries(FREQ_LABELS).map(([k, lbl]) => (
                   <option key={k} value={k}>
@@ -682,7 +760,7 @@ export const RecurringView: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Next Due Date
               </label>
               <input
@@ -690,20 +768,20 @@ export const RecurringView: React.FC = () => {
                 value={draft.nextDueDate}
                 onChange={(e) => setDraft({ ...draft, nextDueDate: e.target.value })}
                 required
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm tabular-nums"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Category
               </label>
               <select
                 value={draft.categoryId}
                 onChange={(e) => setDraft({ ...draft, categoryId: e.target.value })}
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm"
               >
                 {data.categories.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -713,13 +791,13 @@ export const RecurringView: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Account
               </label>
               <select
                 value={draft.accountId}
                 onChange={(e) => setDraft({ ...draft, accountId: e.target.value })}
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm"
               >
                 {data.accounts.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -730,14 +808,14 @@ export const RecurringView: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-300">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--text-secondary)]">
             {draft.type === 'expense' && (
               <label className="inline-flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={draft.isSubscription}
                   onChange={(e) => setDraft({ ...draft, isSubscription: e.target.checked })}
-                  className="rounded border-slate-300 text-indigo-600"
+                  className="rounded border-[var(--border-strong)] accent-[var(--accent-primary)]"
                 />
                 <span>Track as Subscription</span>
               </label>
@@ -747,23 +825,23 @@ export const RecurringView: React.FC = () => {
                 type="checkbox"
                 checked={draft.autoPay}
                 onChange={(e) => setDraft({ ...draft, autoPay: e.target.checked })}
-                className="rounded border-slate-300 text-indigo-600"
+                className="rounded border-[var(--border-strong)] accent-[var(--accent-primary)]"
               />
               <span>Auto-pay enabled</span>
             </label>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200/80 dark:border-slate-800">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border-hairline)]">
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              className="tactile-btn px-4 py-2 rounded-xl text-xs font-medium cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
+              className="tactile-btn-primary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer"
             >
               {draft.id ? 'Save Changes' : 'Add Recurring Item'}
             </button>

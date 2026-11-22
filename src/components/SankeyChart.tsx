@@ -49,7 +49,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
 }) => {
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [hoveredLinkId, setHoveredLinkId] = useState<string | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; maxW: number } | null>(null);
 
   const layout = useMemo(() => {
     const validNodes = graph.nodes.filter((n) => n.value > 0);
@@ -275,16 +275,17 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
     setTooltipPos({
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
+      maxW: rect.width,
     });
   };
 
   if (layout.nodes.length === 0) {
     return (
-      <div className="h-[280px] flex flex-col items-center justify-center text-center px-6">
-        <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+      <div className="tactile-well h-[260px] flex flex-col items-center justify-center text-center px-6">
+        <p className="text-sm font-semibold text-[var(--text-primary)]">
           Not enough cashflow data for this period
         </p>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+        <p className="text-xs text-[var(--text-muted)] mt-1 max-w-sm">
           Log income and expenses to watch your money flow from paycheck to categories.
         </p>
       </div>
@@ -293,7 +294,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
 
   return (
     <div
-      className="relative w-full select-none"
+      className="relative w-full min-w-0 select-none"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => {
         setHoveredNodeId(null);
@@ -324,31 +325,43 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
           ))}
         </defs>
 
-        {/* Column Headers */}
+        {/* Subtle Column Tracks & Headers */}
         {layout.activeCols.map(({ col, x }) => (
-          <text
-            key={`hdr-${col}`}
-            x={x}
-            y={15}
-            textAnchor="middle"
-            className="fill-slate-400 dark:fill-slate-500 text-[10px] font-semibold uppercase tracking-wider"
-          >
-            {COLUMN_TITLES[col]}
-          </text>
+          <g key={`hdr-${col}`}>
+            <line
+              x1={x}
+              y1={PAD_TOP - 4}
+              x2={x}
+              y2={SVG_H - PAD_BOT + 4}
+              stroke="var(--border-hairline)"
+              strokeWidth={1}
+              strokeDasharray="2 4"
+              opacity={0.7}
+            />
+            <text
+              x={x}
+              y={15}
+              textAnchor="middle"
+              fill="var(--text-muted)"
+              className="text-[10px] font-semibold uppercase tracking-wider"
+            >
+              {COLUMN_TITLES[col]}
+            </text>
+          </g>
         ))}
 
         {/* Flow Ribbons */}
         <g>
           {layout.links.map((l) => {
             const isHighlighted = !hasHover || highlightedLinks.has(l.id);
-            const opacity = hasHover ? (isHighlighted ? 0.68 : 0.08) : 0.34;
+            const opacity = hasHover ? (isHighlighted ? 0.72 : 0.1) : 0.36;
             return (
               <path
                 key={l.id}
                 d={l.path}
                 fill={`url(#sankey-grad-${l.id})`}
                 fillOpacity={opacity}
-                className="transition-all duration-200 cursor-pointer"
+                className="transition-[fill-opacity] duration-200 cursor-pointer"
                 onMouseEnter={() => {
                   setHoveredNodeId(null);
                   setHoveredLinkId(l.id);
@@ -384,14 +397,36 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
               <g
                 key={n.id}
                 className={`transition-opacity duration-200 ${isClickable ? 'cursor-pointer' : 'cursor-default'}`}
-                opacity={isHighlighted ? 1 : 0.28}
+                opacity={isHighlighted ? 1 : 0.32}
+                role={isClickable ? 'button' : undefined}
+                tabIndex={isClickable ? 0 : undefined}
+                aria-label={
+                  isClickable
+                    ? `Filter transactions by ${n.label}: ${formatMoney(n.value, currency)} (${pct}%)`
+                    : undefined
+                }
                 onMouseEnter={() => {
                   setHoveredLinkId(null);
                   setHoveredNodeId(n.id);
                 }}
                 onMouseLeave={() => setHoveredNodeId(null)}
+                onFocus={() => {
+                  if (isClickable) {
+                    setHoveredLinkId(null);
+                    setHoveredNodeId(n.id);
+                  }
+                }}
+                onBlur={() => {
+                  if (isClickable) setHoveredNodeId(null);
+                }}
                 onClick={() => {
                   if (isClickable && n.filterId && onSelectCategory) {
+                    onSelectCategory(n.filterId);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (isClickable && n.filterId && onSelectCategory && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
                     onSelectCategory(n.filterId);
                   }
                 }}
@@ -403,6 +438,8 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                   height={n.h}
                   rx={4}
                   fill={n.color}
+                  stroke="var(--bg-surface)"
+                  strokeWidth={1.5}
                   className="transition-transform duration-150"
                 />
                 {n.column === 1 ? (
@@ -411,7 +448,8 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                       x={labelX}
                       y={labelY}
                       textAnchor="middle"
-                      className="fill-slate-700 dark:fill-slate-200 text-[11px] font-semibold"
+                      fill="var(--text-primary)"
+                      className="text-[11px] font-semibold"
                     >
                       {n.label}
                     </text>
@@ -422,7 +460,8 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                       x={labelX}
                       y={n.h >= 24 ? labelY - 3 : labelY + 3.5}
                       textAnchor={anchor}
-                      className="fill-slate-800 dark:fill-slate-100 text-[11.5px] font-medium"
+                      fill="var(--text-primary)"
+                      className="text-[11.5px] font-medium"
                     >
                       {n.label.length > 18 ? `${n.label.slice(0, 17)}…` : n.label}
                     </text>
@@ -431,7 +470,8 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
                         x={labelX}
                         y={labelY + 11}
                         textAnchor={anchor}
-                        className={`fill-slate-500 dark:fill-slate-400 text-[10px] tabular-nums ${
+                        fill="var(--text-muted)"
+                        className={`text-[10px] tabular-nums ${
                           privacyMask ? 'privacy-blur' : ''
                         }`}
                       >
@@ -449,28 +489,35 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({
       {/* Floating Hover Tooltip */}
       {hoveredInfo && tooltipPos && (
         <div
-          className="pointer-events-none absolute z-30 px-3 py-2 rounded-xl bg-slate-900/95 dark:bg-slate-950/95 text-white border border-slate-700/80 shadow-xl backdrop-blur-md text-xs min-w-[175px]"
+          className="tactile-card-elevated pointer-events-none absolute z-30 px-3 py-2.5 text-xs min-w-[185px] max-w-[260px]"
           style={{
-            left: Math.min(tooltipPos.x + 14, 620),
-            top: Math.max(8, tooltipPos.y - 68),
+            left: Math.max(8, Math.min(tooltipPos.x + 14, Math.max(8, tooltipPos.maxW - 210))),
+            top: Math.max(8, tooltipPos.y - 72),
           }}
         >
           <div className="flex items-center gap-2">
             <span
               className="w-2.5 h-2.5 rounded-full shrink-0"
               style={{ backgroundColor: hoveredInfo.color }}
+              aria-hidden="true"
             />
-            <span className="font-semibold truncate">{hoveredInfo.title}</span>
+            <span className="font-semibold text-[var(--text-primary)] truncate">
+              {hoveredInfo.title}
+            </span>
           </div>
           <div className="mt-1.5 flex items-baseline justify-between gap-4">
-            <span className={`font-semibold text-sm tabular-nums ${privacyMask ? 'privacy-blur' : ''}`}>
+            <span
+              className={`font-semibold text-sm tabular-nums text-[var(--text-primary)] ${
+                privacyMask ? 'privacy-blur' : ''
+              }`}
+            >
               {formatMoney(hoveredInfo.value, currency)}
             </span>
-            <span className="text-slate-300 tabular-nums font-medium">
+            <span className="text-[var(--text-secondary)] tabular-nums font-medium">
               {hoveredInfo.pct.toFixed(1)}%
             </span>
           </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">{hoveredInfo.subtitle}</div>
+          <div className="text-[10px] text-[var(--text-muted)] mt-0.5">{hoveredInfo.subtitle}</div>
         </div>
       )}
     </div>

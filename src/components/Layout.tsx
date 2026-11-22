@@ -5,6 +5,7 @@ import {
   PieChart,
   CalendarClock,
   Target,
+  LineChart,
   Landmark,
   SlidersHorizontal,
   MonitorDown,
@@ -16,7 +17,7 @@ import {
   EyeOff,
   Sun,
   Moon,
-  Search,
+  MessageSquareText,
   Plus,
   Menu,
   X,
@@ -78,7 +79,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     badge?: number | string;
-    badgeTone?: 'amber' | 'indigo' | 'emerald';
+    badgeTone?: 'warning' | 'primary' | 'positive';
   }> = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     {
@@ -86,11 +87,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       label: 'Transactions',
       icon: ArrowLeftRight,
       badge: unreviewedCount > 0 ? unreviewedCount : undefined,
-      badgeTone: 'amber',
+      badgeTone: 'warning',
     },
     { id: 'budgets', label: 'Budgets', icon: PieChart },
     { id: 'recurring', label: 'Recurring', icon: CalendarClock },
     { id: 'goals', label: 'Goals & Debt', icon: Target },
+    { id: 'forecast', label: 'Forecast Lab', icon: LineChart },
     { id: 'accounts', label: 'Accounts', icon: Landmark },
     { id: 'rules', label: 'Rules', icon: SlidersHorizontal },
     {
@@ -98,7 +100,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       label: isDesktop ? 'Desktop Vault' : 'Download App',
       icon: MonitorDown,
       badge: isDesktop ? 'Local' : 'Free',
-      badgeTone: isDesktop ? 'emerald' : 'indigo',
+      badgeTone: isDesktop ? 'positive' : 'primary',
     },
   ];
 
@@ -109,33 +111,83 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const handleSampleToggle = () => {
     if (isDemo) {
-      if (window.confirm('Switch to a clean empty vault? Your sample data will be replaced with default categories and a fresh checking account.')) {
+      if (
+        window.confirm(
+          'Switch to a clean empty vault? Your sample data will be replaced with default categories and a fresh checking account.'
+        )
+      ) {
         resetToFreshVault();
       }
     } else {
-      if (window.confirm('Load rich realistic sample data to explore all charts & planners? This replaces current vault data.')) {
+      if (
+        window.confirm(
+          'Load rich realistic sample data to explore all charts & planners? This replaces current vault data.'
+        )
+      ) {
         loadSampleData();
       }
     }
   };
 
+  const getBadgeStyle = (
+    tone: 'warning' | 'primary' | 'positive' | undefined,
+    active: boolean
+  ): React.CSSProperties => {
+    if (active) {
+      return {
+        backgroundColor: '#FFFFFF',
+        color: '#143B2F',
+      };
+    }
+    if (tone === 'warning') {
+      return isDark
+        ? {
+            backgroundColor: '#78350F',
+            color: '#FEF3C7',
+            border: '1px solid #B45309',
+          }
+        : {
+            backgroundColor: '#FEF3C7',
+            color: '#92400E',
+            border: '1px solid #F59E0B',
+          };
+    }
+    if (tone === 'positive') {
+      return {
+        backgroundColor: 'var(--accent-positive-soft)',
+        color: 'var(--accent-positive)',
+      };
+    }
+    return {
+      backgroundColor: 'var(--accent-primary-soft)',
+      color: 'var(--accent-primary-text)',
+    };
+  };
+
   const renderSidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Brand Header */}
-      <div className="px-4 h-16 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 shrink-0">
+      <div className="px-4 h-16 flex items-center justify-between border-b border-[var(--border-hairline)] shrink-0">
         <button
           type="button"
           onClick={() => handleNavClick('dashboard')}
-          className="flex items-center gap-2.5 text-left group cursor-pointer"
+          aria-label="Go to VaultLedger Dashboard"
+          className="flex items-center gap-2.5 text-left group cursor-pointer rounded-xl"
         >
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-emerald-500 flex items-center justify-center shadow-sm shadow-indigo-500/20">
-            <ShieldCheck className="w-4.5 h-4.5 text-white" />
+          <div
+            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+            style={{
+              backgroundColor: 'var(--accent-primary)',
+              boxShadow: 'var(--shadow-btn)',
+            }}
+          >
+            <ShieldCheck className="w-4.5 h-4.5 text-white" aria-hidden="true" />
           </div>
           <div>
-            <div className="text-sm font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
+            <div className="text-sm font-bold tracking-tight text-[var(--text-primary)] leading-tight">
               VaultLedger
             </div>
-            <div className="text-[10px] font-medium text-slate-400 dark:text-slate-500 leading-tight">
+            <div className="text-[10px] font-medium text-[var(--text-muted)] leading-tight">
               Offline Finance Studio
             </div>
           </div>
@@ -144,15 +196,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <button
           type="button"
           onClick={() => setMobileMenuOpen(false)}
-          className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
-          aria-label="Close navigation"
+          className="lg:hidden p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+          aria-label="Close navigation menu"
         >
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+      <nav aria-label="Primary navigation" className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = activeNav === item.id;
@@ -161,29 +213,25 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               key={item.id}
               type="button"
               onClick={() => handleNavClick(item.id)}
-              className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer ${
+              aria-current={active ? 'page' : undefined}
+              className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
                 active
-                  ? 'bg-indigo-600/10 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 shadow-[inset_0_0_0_1px_rgba(99,102,241,0.25)]'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
+                  ? 'bg-[var(--accent-primary)] text-white shadow-[var(--shadow-btn)]'
+                  : 'bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]'
               }`}
             >
               <span className="flex items-center gap-2.5 truncate">
                 <Icon
                   className={`w-4 h-4 shrink-0 ${
-                    active ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'
+                    active ? 'text-white' : 'text-[var(--text-muted)]'
                   }`}
                 />
                 <span className="truncate">{item.label}</span>
               </span>
               {item.badge !== undefined && (
                 <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums shrink-0 ${
-                    item.badgeTone === 'amber'
-                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
-                      : item.badgeTone === 'emerald'
-                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-                      : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300'
-                  }`}
+                  style={getBadgeStyle(item.badgeTone, active)}
+                  className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums shrink-0"
                 >
                   {item.badge}
                 </span>
@@ -194,27 +242,51 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </nav>
 
       {/* Bottom Quick Controls */}
-      <div className="p-3 border-t border-slate-200/80 dark:border-slate-800/80 space-y-2 shrink-0">
-        {/* Sample Data vs Fresh Vault pill */}
+      <div className="p-3 border-t border-[var(--border-hairline)] space-y-2 shrink-0">
+        {/* Sample Data vs Personal Vault pill */}
         <button
           type="button"
           onClick={handleSampleToggle}
-          className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
+          className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-colors cursor-pointer"
+          style={
             isDemo
-              ? 'bg-amber-500/10 border-amber-500/25 text-amber-800 dark:text-amber-300 hover:bg-amber-500/15'
-              : 'bg-slate-100/80 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-slate-800'
-          }`}
-          title={isDemo ? 'Click to switch to a fresh empty vault' : 'Click to load sample demo data'}
+              ? {
+                  backgroundColor: 'var(--accent-warning-soft)',
+                  borderColor: 'transparent',
+                  color: 'var(--accent-warning)',
+                }
+              : {
+                  backgroundColor: 'var(--bg-subtle)',
+                  borderColor: 'var(--border-hairline)',
+                  color: 'var(--text-secondary)',
+                }
+          }
+          title={
+            isDemo
+              ? 'Click to switch to a fresh empty vault'
+              : 'Click to load sample demo data'
+          }
+          aria-label={
+            isDemo
+              ? 'Sample data active. Switch to a fresh empty vault'
+              : 'Personal vault active. Load sample demo data'
+          }
         >
           <span className="flex items-center gap-1.5 truncate">
             {isDemo ? (
-              <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+              <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
             ) : (
-              <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+              <CheckCircle2
+                className="w-3.5 h-3.5 shrink-0"
+                style={{ color: 'var(--accent-positive)' }}
+                aria-hidden="true"
+              />
             )}
-            <span className="truncate">{isDemo ? 'Sample Data Active' : 'Personal Vault'}</span>
+            <span className="truncate">
+              {isDemo ? 'Sample Data Active' : 'Personal Vault'}
+            </span>
           </span>
-          <span className="text-[10px] opacity-75 shrink-0">
+          <span className="text-[10px] font-semibold opacity-80 shrink-0">
             {isDemo ? 'Start Fresh' : 'Demo'}
           </span>
         </button>
@@ -226,10 +298,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             openImportExport('import');
             setMobileMenuOpen(false);
           }}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-100/80 dark:bg-slate-800/70 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          aria-label="Open Import, Export and Encrypted Backup"
+          className="tactile-btn w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium cursor-pointer"
         >
-          <Upload className="w-3.5 h-3.5 text-indigo-500" />
-          <span>Import / Export &amp; Backup</span>
+          <Upload
+            className="w-3.5 h-3.5 shrink-0"
+            style={{ color: 'var(--accent-primary-text)' }}
+            aria-hidden="true"
+          />
+          <span className="truncate">Import / Export &amp; Backup</span>
         </button>
 
         {/* Undo / Redo + Vault Lock row */}
@@ -239,9 +316,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             onClick={undo}
             disabled={!canUndo}
             title="Undo (Ctrl+Z)"
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            aria-label="Undo last change"
+            className="tactile-btn flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            <Undo2 className="w-3.5 h-3.5" />
+            <Undo2 className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Undo</span>
           </button>
           <button
@@ -249,9 +327,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             onClick={redo}
             disabled={!canRedo}
             title="Redo (Ctrl+Shift+Z)"
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-35 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            aria-label="Redo last change"
+            className="tactile-btn flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
-            <Redo2 className="w-3.5 h-3.5" />
+            <Redo2 className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Redo</span>
           </button>
           <button
@@ -263,14 +342,33 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 handleNavClick('accounts');
               }
             }}
-            title={hasPasscode ? 'Lock Vault' : 'Configure Vault Passcode in Accounts & Settings'}
-            className={`px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+            title={
               hasPasscode
-                ? 'border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20'
-                : 'border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
+                ? 'Lock Vault'
+                : 'Configure Vault Passcode in Accounts & Settings'
+            }
+            aria-label={
+              hasPasscode
+                ? 'Lock Vault'
+                : 'Configure Vault Passcode in Accounts and Settings'
+            }
+            className="px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer"
+            style={
+              hasPasscode
+                ? {
+                    backgroundColor: 'var(--accent-primary-soft)',
+                    borderColor: 'var(--accent-primary)',
+                    color: 'var(--accent-primary-text)',
+                  }
+                : {
+                    backgroundColor: 'var(--bg-surface)',
+                    borderColor: 'var(--border-hairline)',
+                    color: 'var(--text-secondary)',
+                    boxShadow: 'var(--shadow-btn)',
+                  }
+            }
           >
-            <Lock className="w-3.5 h-3.5" />
+            <Lock className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -278,21 +376,25 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen flex bg-[var(--bg-canvas)] text-[var(--text-primary)] transition-colors">
       {/* Desktop Left Sidebar */}
-      <aside className="no-print hidden lg:flex flex-col w-60 shrink-0 border-r border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-950/90 sticky top-0 h-screen">
+      <aside className="no-print hidden lg:flex flex-col w-60 shrink-0 border-r border-[var(--border-hairline)] bg-[var(--bg-surface)] sticky top-0 h-screen">
         {renderSidebarContent()}
       </aside>
 
       {/* Mobile Drawer Overlay */}
       {mobileMenuOpen && (
         <div
-          className="no-print fixed inset-0 z-50 lg:hidden bg-slate-950/60 backdrop-blur-sm flex"
+          className="no-print fixed inset-0 z-50 lg:hidden bg-black/50 backdrop-blur-[2px] flex"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setMobileMenuOpen(false);
           }}
         >
-          <aside className="w-68 max-w-[82vw] h-full bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 shadow-2xl">
+          <aside
+            aria-label="Mobile navigation"
+            className="w-68 max-w-[82vw] h-full bg-[var(--bg-surface)] border-r border-[var(--border-strong)]"
+            style={{ boxShadow: 'var(--shadow-elevated)' }}
+          >
             {renderSidebarContent()}
           </aside>
         </div>
@@ -301,29 +403,45 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main Column */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <header className="no-print sticky top-0 z-30 h-16 px-4 lg:px-6 flex items-center justify-between gap-3 bg-white/85 dark:bg-slate-950/85 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80">
+        <header className="no-print sticky top-0 z-30 h-16 px-4 lg:px-6 flex items-center justify-between gap-3 bg-[var(--bg-surface)] border-b border-[var(--border-hairline)]">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              className="lg:hidden tactile-btn p-2 rounded-xl cursor-pointer"
               aria-label="Open navigation menu"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4.5 h-4.5" aria-hidden="true" />
             </button>
 
             {/* Offline Status Badge */}
-            <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-[11px] font-medium shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <Database className="w-3 h-3" />
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-secondary)] text-[11px] font-medium shrink-0">
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: 'var(--accent-positive)' }}
+                aria-hidden="true"
+              />
+              <Database
+                className="w-3 h-3 shrink-0"
+                style={{ color: 'var(--accent-positive)' }}
+                aria-hidden="true"
+              />
               <span>
-                {isDesktop ? '100% Offline • Desktop Local Vault' : 'Offline PWA • IndexedDB'}
+                {isDesktop
+                  ? '100% Offline • Desktop Local Vault'
+                  : 'Offline PWA • IndexedDB'}
               </span>
             </div>
 
-            {/* Time Range Pills */}
-            {(activeNav === 'dashboard' || activeNav === 'transactions' || activeNav === 'budgets') && (
-              <div className="hidden xl:flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+            {/* Tactile Segmented Time Range Control */}
+            {(activeNav === 'dashboard' ||
+              activeNav === 'transactions' ||
+              activeNav === 'budgets') && (
+              <div
+                role="group"
+                aria-label="Time range"
+                className="hidden xl:inline-flex items-center p-1 tactile-well gap-0.5"
+              >
                 {TIME_RANGES.map((tr) => {
                   const selected = timeRange === tr.value;
                   return (
@@ -331,11 +449,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       key={tr.value}
                       type="button"
                       onClick={() => setTimeRange(tr.value)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                      aria-pressed={selected}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                         selected
-                          ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                          ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-hairline)]'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-transparent'
                       }`}
+                      style={selected ? { boxShadow: 'var(--shadow-btn)' } : undefined}
                     >
                       {tr.label}
                     </button>
@@ -347,12 +467,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           <div className="flex items-center gap-2 shrink-0">
             {/* Compact time range select on smaller screens */}
-            {(activeNav === 'dashboard' || activeNav === 'transactions' || activeNav === 'budgets') && (
+            {(activeNav === 'dashboard' ||
+              activeNav === 'transactions' ||
+              activeNav === 'budgets') && (
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value as TimeRange)}
                 aria-label="Time range"
-                className="xl:hidden rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none"
+                className="xl:hidden tactile-input px-2.5 py-1.5 text-xs font-medium cursor-pointer"
               >
                 {TIME_RANGES.map((tr) => (
                   <option key={tr.value} value={tr.value}>
@@ -362,16 +484,23 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </select>
             )}
 
-            {/* Ctrl+K Search */}
+            {/* Tactile Ask Vault / Command Palette Pill */}
             <button
               type="button"
               onClick={() => setCommandPaletteOpen(true)}
-              className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100/90 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 transition-colors cursor-pointer"
-              title="Command Palette (Ctrl+K)"
+              aria-label="Ask Vault or search commands (Ctrl+K)"
+              title="Ask Vault & Command Palette (Ctrl+K)"
+              className="tactile-btn inline-flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer"
             >
-              <Search className="w-3.5 h-3.5" />
-              <span>Search...</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-mono text-slate-500 dark:text-slate-400">
+              <MessageSquareText
+                className="w-3.5 h-3.5 shrink-0"
+                style={{ color: 'var(--accent-primary-text)' }}
+                aria-hidden="true"
+              />
+              <span className="hidden sm:inline text-[var(--text-secondary)]">
+                Ask Vault
+              </span>
+              <kbd className="hidden md:inline-block px-1.5 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[10px] font-mono text-[var(--text-muted)]">
                 Ctrl K
               </kbd>
             </button>
@@ -380,15 +509,33 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <button
               type="button"
               onClick={togglePrivacyMask}
-              title={privacyMask ? 'Show Amounts (Shift+P)' : 'Privacy Blur Mode (Shift+P)'}
-              className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+              title={
                 privacyMask
-                  ? 'bg-indigo-500/15 border-indigo-500/35 text-indigo-600 dark:text-indigo-300'
-                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                  ? 'Show Amounts (Shift+P)'
+                  : 'Privacy Blur Mode (Shift+P)'
+              }
+              aria-label={
+                privacyMask ? 'Disable privacy mask' : 'Enable privacy mask'
+              }
+              aria-pressed={privacyMask}
+              className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                privacyMask ? '' : 'tactile-btn'
               }`}
-              aria-label="Toggle privacy mask"
+              style={
+                privacyMask
+                  ? {
+                      backgroundColor: 'var(--accent-primary-soft)',
+                      borderColor: 'var(--accent-primary)',
+                      color: 'var(--accent-primary-text)',
+                    }
+                  : undefined
+              }
             >
-              {privacyMask ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {privacyMask ? (
+                <EyeOff className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <Eye className="w-4 h-4" aria-hidden="true" />
+              )}
             </button>
 
             {/* Theme Toggle */}
@@ -396,21 +543,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               type="button"
               onClick={toggleTheme}
               title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors cursor-pointer"
-              aria-label="Toggle color theme"
+              aria-label={
+                isDark ? 'Switch to light mode' : 'Switch to dark mode'
+              }
+              className="tactile-btn p-2 rounded-xl cursor-pointer"
             >
-              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {isDark ? (
+                <Sun className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <Moon className="w-4 h-4" aria-hidden="true" />
+              )}
             </button>
 
             {/* Primary Add Expense CTA */}
             <button
               type="button"
               onClick={() => openQuickAdd()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-medium shadow-sm shadow-indigo-600/20 transition-all active:scale-[0.98] cursor-pointer"
+              aria-label="Add Expense (Shortcut N)"
+              className="tactile-btn-primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4" aria-hidden="true" />
               <span className="hidden sm:inline">Add Expense</span>
-              <kbd className="hidden sm:inline-block ml-1 px-1.5 py-0.5 rounded bg-indigo-500/60 text-[10px] font-mono text-indigo-100">
+              <kbd className="hidden sm:inline-block ml-0.5 px-1.5 py-0.5 rounded bg-white/15 text-[10px] font-mono text-white/90">
                 N
               </kbd>
             </button>

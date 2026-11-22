@@ -498,7 +498,7 @@ async function createMainWindow() {
     height: 880,
     minWidth: 960,
     minHeight: 640,
-    backgroundColor: '#020617',
+    backgroundColor: '#F6F5F1',
     title: 'VaultLedger',
     autoHideMenuBar: true,
     show: false,

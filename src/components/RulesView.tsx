@@ -186,10 +186,10 @@ export const RulesView: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
             Auto-Categorization Rules
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
             Automatically clean merchant names, assign categories, add tags, and auto-review imports.
           </p>
         </div>
@@ -205,15 +205,15 @@ export const RulesView: React.FC = () => {
                 updated > 0 ? 'success' : 'info'
               );
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+            className="tactile-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer"
           >
-            <Play className="w-3.5 h-3.5 text-emerald-500" />
+            <Play className="w-3.5 h-3.5" style={{ color: 'var(--accent-positive)' }} />
             <span>Run All Rules on Existing Transactions</span>
           </button>
           <button
             type="button"
             onClick={openNewRule}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+            className="tactile-btn-primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>New Rule</span>
@@ -223,18 +223,24 @@ export const RulesView: React.FC = () => {
 
       {/* Smart Suggested Rules Banner */}
       {suggestions.length > 0 && (
-        <div className="rounded-2xl bg-indigo-500/8 dark:bg-indigo-500/10 border border-indigo-500/25 p-5 space-y-3">
+        <div className="tactile-card border-l-4 border-l-[var(--accent-primary)] p-5 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-indigo-500" />
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              <Sparkles className="w-4 h-4" style={{ color: 'var(--accent-primary-text)' }} />
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">
                 Smart Rule Suggestions
               </h2>
-              <span className="px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[11px] font-semibold">
+              <span
+                className="px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums"
+                style={{
+                  backgroundColor: 'var(--accent-primary-soft)',
+                  color: 'var(--accent-primary-text)',
+                }}
+              >
                 {suggestions.length} detected
               </span>
             </div>
-            <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
+            <span className="text-xs text-[var(--text-muted)] hidden sm:inline">
               Based on payees you&apos;ve categorized consistently
             </span>
           </div>
@@ -245,26 +251,26 @@ export const RulesView: React.FC = () => {
               return (
                 <div
                   key={`${sug.payee}-${sug.categoryId}`}
-                  className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800"
+                  className="tactile-well flex items-center justify-between gap-3 px-3.5 py-2.5"
                 >
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                    <div className="text-xs font-semibold text-[var(--text-primary)] truncate">
                       {sug.payee}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      <ArrowRight className="w-3 h-3 shrink-0 text-slate-400" />
+                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] mt-0.5">
+                      <ArrowRight className="w-3 h-3 shrink-0 text-[var(--text-muted)]" />
                       <span
                         className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: cat?.color ?? '#6366f1' }}
+                        style={{ backgroundColor: cat?.color ?? '#1B4D3E' }}
                       />
                       <span className="truncate">{cat?.name ?? sug.categoryId}</span>
-                      <span className="text-slate-400 tabular-nums">({sug.count}×)</span>
+                      <span className="text-[var(--text-muted)] tabular-nums">({sug.count}×)</span>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleAcceptSuggestion(sug.payee, sug.categoryId)}
-                    className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold shrink-0 transition-colors cursor-pointer"
+                    className="tactile-btn-primary px-2.5 py-1.5 rounded-lg text-[11px] font-semibold shrink-0 cursor-pointer"
                   >
                     Create Rule
                   </button>
@@ -276,36 +282,43 @@ export const RulesView: React.FC = () => {
       )}
 
       {/* Active Rules List */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 overflow-hidden">
+      <div className="tactile-card overflow-hidden">
         {sortedRules.length === 0 ? (
           <div className="p-10 text-center">
-            <SlidersHorizontal className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <SlidersHorizontal className="w-8 h-8 text-[var(--text-muted)] mx-auto mb-3 opacity-60" />
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
               No categorization rules yet
             </p>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-[var(--text-muted)] mt-1">
               Create your first rule to automatically categorize bank imports and recurring merchants.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+          <div className="divide-y divide-[var(--border-hairline)]">
             {sortedRules.map((rule) => {
               const cat = rule.assignCategoryId ? categoryMap.get(rule.assignCategoryId) : null;
               return (
                 <div
                   key={rule.id}
-                  className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors ${
-                    rule.enabled ? '' : 'opacity-55 bg-slate-50/60 dark:bg-slate-950/30'
+                  className={`p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors hover:bg-[var(--bg-surface-hover)] ${
+                    rule.enabled ? '' : 'opacity-60 bg-[var(--bg-subtle)]'
                   }`}
                 >
                   <div className="flex items-start gap-3 min-w-0">
                     <button
                       type="button"
+                      role="switch"
+                      aria-checked={rule.enabled}
                       onClick={() => updateRule(rule.id, { enabled: !rule.enabled })}
-                      className={`mt-0.5 w-9 h-5 rounded-full transition-colors relative shrink-0 cursor-pointer ${
-                        rule.enabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'
-                      }`}
-                      aria-label={rule.enabled ? 'Disable rule' : 'Enable rule'}
+                      className="mt-0.5 w-9 h-5 rounded-full transition-colors relative shrink-0 cursor-pointer border border-[var(--border-hairline)]"
+                      style={{
+                        backgroundColor: rule.enabled
+                          ? 'var(--accent-primary)'
+                          : 'var(--bg-inset)',
+                      }}
+                      aria-label={
+                        rule.enabled ? `Disable rule ${rule.name}` : `Enable rule ${rule.name}`
+                      }
                     >
                       <span
                         className={`block w-3.5 h-3.5 rounded-full bg-white shadow-xs transition-transform ${
@@ -314,22 +327,22 @@ export const RulesView: React.FC = () => {
                       />
                     </button>
 
-                    <div className="min-w-0 space-y-1">
+                    <div className="min-w-0 space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        <span className="text-sm font-semibold text-[var(--text-primary)]">
                           {rule.name}
                         </span>
-                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-mono text-slate-500">
+                        <span className="px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[10px] font-mono text-[var(--text-muted)] tabular-nums">
                           P{rule.priority}
                         </span>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 font-mono text-[11px]">
+                        <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-secondary)] font-mono text-[11px]">
                           IF {rule.matchField} {rule.matchType} &quot;{rule.pattern}&quot;
                         </span>
                         {(rule.minAmount !== undefined || rule.maxAmount !== undefined) && (
-                          <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 text-[11px] tabular-nums">
+                          <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-secondary)] text-[11px] tabular-nums">
                             Amount:{' '}
                             {rule.minAmount !== undefined
                               ? formatMoney(rule.minAmount, currency)
@@ -340,9 +353,15 @@ export const RulesView: React.FC = () => {
                               : '∞'}
                           </span>
                         )}
-                        <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+                        <ArrowRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                         {cat && (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-500/12 text-indigo-700 dark:text-indigo-300 font-medium text-[11px]">
+                          <span
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-semibold text-[11px]"
+                            style={{
+                              backgroundColor: 'var(--accent-primary-soft)',
+                              color: 'var(--accent-primary-text)',
+                            }}
+                          >
                             <span
                               className="w-2 h-2 rounded-full"
                               style={{ backgroundColor: cat.color }}
@@ -351,20 +370,32 @@ export const RulesView: React.FC = () => {
                           </span>
                         )}
                         {rule.renamePayeeTo && (
-                          <span className="px-2 py-0.5 rounded-md bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 text-[11px]">
+                          <span
+                            className="px-2 py-0.5 rounded-md font-medium text-[11px]"
+                            style={{
+                              backgroundColor: 'var(--accent-positive-soft)',
+                              color: 'var(--accent-positive)',
+                            }}
+                          >
                             Rename → {rule.renamePayeeTo}
                           </span>
                         )}
                         {rule.addTags?.map((tg) => (
                           <span
                             key={tg}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px]"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-secondary)] text-[11px]"
                           >
                             <Tag className="w-2.5 h-2.5" />#{tg}
                           </span>
                         ))}
                         {rule.markReviewed && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-[11px]">
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-medium text-[11px]"
+                            style={{
+                              backgroundColor: 'var(--accent-positive-soft)',
+                              color: 'var(--accent-positive)',
+                            }}
+                          >
                             <CheckCircle2 className="w-3 h-3" />
                             Auto-Review
                           </span>
@@ -377,16 +408,16 @@ export const RulesView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => openEditRule(rule)}
-                      className="p-2 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                      aria-label="Edit rule"
+                      className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer"
+                      aria-label={`Edit rule ${rule.name}`}
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => deleteRule(rule.id)}
-                      className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer"
-                      aria-label="Delete rule"
+                      className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-danger)] hover:bg-[var(--accent-danger-soft)] transition-colors cursor-pointer"
+                      aria-label={`Delete rule ${rule.name}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -409,7 +440,7 @@ export const RulesView: React.FC = () => {
         <form onSubmit={handleSaveRule} className="p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Rule Name
               </label>
               <input
@@ -417,25 +448,25 @@ export const RulesView: React.FC = () => {
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 placeholder="e.g. Coffee Shops → Dining Out"
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                className="tactile-input w-full px-3 py-2 text-sm"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Priority (lower runs first)
               </label>
               <input
                 type="number"
                 value={draft.priority}
                 onChange={(e) => setDraft({ ...draft, priority: Number(e.target.value) || 1 })}
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm tabular-nums outline-none focus:border-indigo-500"
+                className="tactile-input w-full px-3 py-2 text-sm tabular-nums"
               />
             </div>
           </div>
 
           {/* Match Condition */}
-          <div className="rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 p-3.5 space-y-3">
-            <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+          <div className="tactile-well p-3.5 space-y-3">
+            <div className="text-xs font-semibold text-[var(--text-primary)]">
               When transaction matches:
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
@@ -444,7 +475,8 @@ export const RulesView: React.FC = () => {
                 onChange={(e) =>
                   setDraft({ ...draft, matchField: e.target.value as CategoryRule['matchField'] })
                 }
-                className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-2 text-xs outline-none"
+                aria-label="Match field"
+                className="tactile-input px-2.5 py-2 text-xs"
               >
                 <option value="payee">Payee</option>
                 <option value="notes">Notes</option>
@@ -455,7 +487,8 @@ export const RulesView: React.FC = () => {
                 onChange={(e) =>
                   setDraft({ ...draft, matchType: e.target.value as CategoryRule['matchType'] })
                 }
-                className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-2 text-xs outline-none"
+                aria-label="Match operator"
+                className="tactile-input px-2.5 py-2 text-xs"
               >
                 <option value="contains">Contains</option>
                 <option value="startsWith">Starts with</option>
@@ -468,7 +501,7 @@ export const RulesView: React.FC = () => {
                 onChange={(e) => setDraft({ ...draft, pattern: e.target.value })}
                 placeholder="Pattern (e.g. Starbucks)"
                 required
-                className="col-span-2 sm:col-span-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-2 text-xs outline-none focus:border-indigo-500"
+                className="tactile-input col-span-2 sm:col-span-1 px-2.5 py-2 text-xs"
               />
             </div>
             <div className="grid grid-cols-2 gap-2.5">
@@ -478,7 +511,7 @@ export const RulesView: React.FC = () => {
                 value={draft.minAmount}
                 onChange={(e) => setDraft({ ...draft, minAmount: e.target.value })}
                 placeholder="Min amount (optional)"
-                className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-1.5 text-xs tabular-nums outline-none"
+                className="tactile-input px-2.5 py-1.5 text-xs tabular-nums"
               />
               <input
                 type="number"
@@ -486,7 +519,7 @@ export const RulesView: React.FC = () => {
                 value={draft.maxAmount}
                 onChange={(e) => setDraft({ ...draft, maxAmount: e.target.value })}
                 placeholder="Max amount (optional)"
-                className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-1.5 text-xs tabular-nums outline-none"
+                className="tactile-input px-2.5 py-1.5 text-xs tabular-nums"
               />
             </div>
           </div>
@@ -494,13 +527,13 @@ export const RulesView: React.FC = () => {
           {/* Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Assign Category
               </label>
               <select
                 value={draft.assignCategoryId}
                 onChange={(e) => setDraft({ ...draft, assignCategoryId: e.target.value })}
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm"
               >
                 <option value="">Keep existing category</option>
                 {data.categories.map((c) => (
@@ -511,7 +544,7 @@ export const RulesView: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Clean / Rename Payee (optional)
               </label>
               <input
@@ -519,14 +552,14 @@ export const RulesView: React.FC = () => {
                 value={draft.renamePayeeTo}
                 onChange={(e) => setDraft({ ...draft, renamePayeeTo: e.target.value })}
                 placeholder="e.g. Starbucks Coffee"
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Add Tags (comma-separated)
               </label>
               <input
@@ -534,29 +567,35 @@ export const RulesView: React.FC = () => {
                 value={draft.addTagsText}
                 onChange={(e) => setDraft({ ...draft, addTagsText: e.target.value })}
                 placeholder="coffee, treat"
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm"
               />
             </div>
-            <label className="inline-flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 mt-4 cursor-pointer">
+            <label className="inline-flex items-center gap-2 text-xs text-[var(--text-secondary)] mt-4 cursor-pointer">
               <input
                 type="checkbox"
                 checked={draft.markReviewed}
                 onChange={(e) => setDraft({ ...draft, markReviewed: e.target.checked })}
-                className="rounded border-slate-300 text-indigo-600"
+                className="rounded border-[var(--border-strong)] accent-[var(--accent-primary)]"
               />
               <span>Auto-mark matching transactions as reviewed</span>
             </label>
           </div>
 
           {/* Live Test Preview */}
-          <div className="rounded-xl bg-indigo-500/6 border border-indigo-500/20 p-3 space-y-2">
+          <div
+            className="tactile-well p-3 space-y-2 border-l-4"
+            style={{ borderLeftColor: 'var(--accent-primary)' }}
+          >
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-indigo-700 dark:text-indigo-300">
+              <span
+                className="font-semibold"
+                style={{ color: 'var(--accent-primary-text)' }}
+              >
                 Live Preview
               </span>
-              <span className="tabular-nums text-slate-500 dark:text-slate-400">
-                Matches <strong>{previewMatches.length}</strong> existing{' '}
-                {previewMatches.length === 1 ? 'transaction' : 'transactions'}
+              <span className="tabular-nums text-[var(--text-muted)]">
+                Matches <strong className="text-[var(--text-primary)]">{previewMatches.length}</strong>{' '}
+                existing {previewMatches.length === 1 ? 'transaction' : 'transactions'}
               </span>
             </div>
             {previewMatches.length > 0 && (
@@ -564,12 +603,16 @@ export const RulesView: React.FC = () => {
                 {previewMatches.slice(0, 5).map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center justify-between text-[11px] px-2 py-1 rounded bg-white/80 dark:bg-slate-900/80"
+                    className="flex items-center justify-between text-[11px] px-2.5 py-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-hairline)]"
                   >
-                    <span className="truncate font-medium text-slate-700 dark:text-slate-200">
+                    <span className="truncate font-medium text-[var(--text-primary)] tabular-nums">
                       {tx.date} · {tx.payee}
                     </span>
-                    <span className={`tabular-nums font-semibold ${privacyMask ? 'privacy-blur' : ''}`}>
+                    <span
+                      className={`tabular-nums font-semibold text-[var(--text-primary)] ${
+                        privacyMask ? 'privacy-blur' : ''
+                      }`}
+                    >
                       {formatMoney(tx.amount, currency)}
                     </span>
                   </div>
@@ -578,17 +621,17 @@ export const RulesView: React.FC = () => {
             )}
           </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200/80 dark:border-slate-800">
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-hairline)]">
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              className="tactile-btn px-4 py-2 rounded-xl text-xs font-medium cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
+              className="tactile-btn-primary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer"
             >
               {draft.id ? 'Save Rule' : 'Create Rule'}
             </button>

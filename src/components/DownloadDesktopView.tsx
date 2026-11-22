@@ -15,6 +15,7 @@ import {
   Terminal,
   ArrowRight,
   WifiOff,
+  Lock,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 
@@ -58,7 +59,7 @@ export const DownloadDesktopView: React.FC = () => {
   const showToast = useFinanceStore((s) => s.showToast);
 
   const isDesktop = Boolean(window.vaultDesktop?.isDesktop);
-  const desktopVersion = window.vaultDesktop?.appVersion ?? '1.0.0';
+  const desktopVersion = window.vaultDesktop?.appVersion ?? '1.1.0';
   const detectedOS = useMemo(() => detectUserOS(), []);
 
   const [release, setRelease] = useState<GitHubRelease | null>(null);
@@ -114,7 +115,7 @@ export const DownloadDesktopView: React.FC = () => {
     const linuxAppImage = findAsset((n) => n.endsWith('.appimage'));
 
     return {
-      version: release?.tag_name ?? 'v1.0.0',
+      version: release?.tag_name ?? 'v1.1.0',
       winInstaller,
       winPortable,
       macDmg,
@@ -187,21 +188,34 @@ export const DownloadDesktopView: React.FC = () => {
     },
   ];
 
+  const capabilityBadges = [
+    { icon: WifiOff, label: '100% Airplane-Mode Ready' },
+    { icon: HardDrive, label: 'Direct Local Disk Storage' },
+    { icon: RefreshCw, label: 'Automatic Rolling Backups' },
+    { icon: Lock, label: 'AES-256-GCM Encrypted Snapshots' },
+  ];
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Hero Banner */}
+      {/* Header Banner (Clean Tactile Card, no decorative gradient) */}
       {isDesktop ? (
-        <div className="rounded-2xl bg-gradient-to-br from-emerald-500/12 via-slate-900/5 to-indigo-500/10 dark:from-emerald-500/15 dark:via-slate-900/90 dark:to-indigo-500/15 border border-emerald-500/30 p-6">
+        <div className="tactile-card border-l-4 border-l-[var(--accent-positive)] p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+            <div className="space-y-2">
+              <div
+                className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold"
+                style={{
+                  backgroundColor: 'var(--accent-positive-soft)',
+                  color: 'var(--accent-positive)',
+                }}
+              >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Native Desktop App Active</span>
               </div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight tabular-nums">
                 You&apos;re running VaultLedger Desktop v{desktopVersion} — 100% Offline
               </h1>
-              <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl">
+              <p className="text-sm text-[var(--text-secondary)] max-w-2xl">
                 Your financial ledger, receipts, and rolling snapshots are stored directly on your local disk with zero third-party cloud dependencies.
               </p>
             </div>
@@ -209,7 +223,7 @@ export const DownloadDesktopView: React.FC = () => {
               <button
                 type="button"
                 onClick={handleOpenDataFolder}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer"
+                className="tactile-btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer"
               >
                 <FolderOpen className="w-4 h-4" />
                 <span>Open Vault Folder</span>
@@ -218,7 +232,7 @@ export const DownloadDesktopView: React.FC = () => {
                 type="button"
                 onClick={handleSnapshot}
                 disabled={backingUp}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700/80 transition-colors cursor-pointer"
+                className="tactile-btn inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw className={`w-4 h-4 ${backingUp ? 'animate-spin' : ''}`} />
                 <span>{backingUp ? 'Saving...' : 'Create Local Snapshot'}</span>
@@ -227,28 +241,37 @@ export const DownloadDesktopView: React.FC = () => {
           </div>
 
           {storageInfo && (
-            <div className="mt-5 pt-4 border-t border-emerald-500/20 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-              <div className="rounded-xl bg-white/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 p-3">
-                <div className="text-slate-400 font-medium uppercase tracking-wider text-[10px]">
+            <div className="mt-5 pt-4 border-t border-[var(--border-hairline)] grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="tactile-well p-3">
+                <div className="text-[var(--text-muted)] font-semibold uppercase tracking-wider text-[10px]">
                   Vault Ledger File
                 </div>
-                <div className="mt-1 font-mono text-slate-700 dark:text-slate-300 truncate" title={storageInfo.vaultPath}>
+                <div
+                  className="mt-1 font-mono text-[var(--text-primary)] truncate"
+                  title={storageInfo.vaultPath}
+                >
                   {storageInfo.vaultPath}
                 </div>
               </div>
-              <div className="rounded-xl bg-white/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 p-3">
-                <div className="text-slate-400 font-medium uppercase tracking-wider text-[10px]">
+              <div className="tactile-well p-3">
+                <div className="text-[var(--text-muted)] font-semibold uppercase tracking-wider text-[10px]">
                   Auto-Backup Folder
                 </div>
-                <div className="mt-1 font-mono text-slate-700 dark:text-slate-300 truncate" title={storageInfo.backupsDir}>
+                <div
+                  className="mt-1 font-mono text-[var(--text-primary)] truncate"
+                  title={storageInfo.backupsDir}
+                >
                   {storageInfo.backupsDir}
                 </div>
               </div>
-              <div className="rounded-xl bg-white/70 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 p-3">
-                <div className="text-slate-400 font-medium uppercase tracking-wider text-[10px]">
+              <div className="tactile-well p-3">
+                <div className="text-[var(--text-muted)] font-semibold uppercase tracking-wider text-[10px]">
                   Receipts Storage
                 </div>
-                <div className="mt-1 font-mono text-slate-700 dark:text-slate-300 truncate" title={storageInfo.receiptsDir}>
+                <div
+                  className="mt-1 font-mono text-[var(--text-primary)] truncate"
+                  title={storageInfo.receiptsDir}
+                >
                   {storageInfo.receiptsDir}
                 </div>
               </div>
@@ -256,20 +279,26 @@ export const DownloadDesktopView: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="rounded-2xl bg-gradient-to-br from-indigo-600/10 via-white to-emerald-500/10 dark:from-indigo-500/15 dark:via-slate-900 dark:to-emerald-500/10 border border-slate-200 dark:border-slate-800 p-6 md:p-7">
+        <div className="tactile-card border-l-4 border-l-[var(--accent-primary)] p-6 md:p-7">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-xs font-semibold">
+              <div
+                className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold tabular-nums"
+                style={{
+                  backgroundColor: 'var(--accent-primary-soft)',
+                  color: 'var(--accent-primary-text)',
+                }}
+              >
                 <Laptop className="w-3.5 h-3.5" />
                 <span>
                   Native Offline Desktop App · {resolvedAssets.version}
                   {detectedOS !== 'unknown' && ` · Detected ${detectedOS.toUpperCase()}`}
                 </span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+              <h1 className="text-2xl md:text-3xl font-bold text-[var(--text-primary)] tracking-tight">
                 Download VaultLedger for Desktop
               </h1>
-              <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl">
+              <p className="text-sm text-[var(--text-secondary)] max-w-2xl">
                 Keep your entire financial life in a rock-solid local file on your computer. No browser storage eviction, native file dialogs, automatic rolling backups, and 100% airplane-mode operation.
               </p>
             </div>
@@ -278,13 +307,13 @@ export const DownloadDesktopView: React.FC = () => {
                 href={release?.html_url ?? RELEASES_PAGE}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors shadow-sm"
+                className="tactile-btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
               >
                 <Download className="w-4 h-4" />
                 <span>View GitHub Releases</span>
-                <ExternalLink className="w-3.5 h-3.5 opacity-80" />
+                <ExternalLink className="w-3.5 h-3.5 opacity-85" />
               </a>
-              <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <span className="text-xs text-[var(--text-muted)] flex items-center gap-1.5 tabular-nums">
                 {releaseStatus === 'offline' ? (
                   <>
                     <WifiOff className="w-3.5 h-3.5" />
@@ -292,7 +321,7 @@ export const DownloadDesktopView: React.FC = () => {
                   </>
                 ) : releaseStatus === 'loaded' ? (
                   <>
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+                    <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-positive)' }} />
                     Latest release {resolvedAssets.version} ready
                   </>
                 ) : (
@@ -300,6 +329,25 @@ export const DownloadDesktopView: React.FC = () => {
                 )}
               </span>
             </div>
+          </div>
+
+          {/* Offline Capability Badges */}
+          <div className="mt-5 pt-4 border-t border-[var(--border-hairline)] flex flex-wrap gap-2">
+            {capabilityBadges.map((cap) => {
+              const CapIcon = cap.icon;
+              return (
+                <span
+                  key={cap.label}
+                  className="tactile-well inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)]"
+                >
+                  <CapIcon
+                    className="w-3.5 h-3.5 shrink-0"
+                    style={{ color: 'var(--accent-primary-text)' }}
+                  />
+                  <span>{cap.label}</span>
+                </span>
+              );
+            })}
           </div>
         </div>
       )}
@@ -315,53 +363,72 @@ export const DownloadDesktopView: React.FC = () => {
           return (
             <div
               key={card.id}
-              className={`rounded-2xl p-5 bg-white dark:bg-slate-900/70 border transition-all flex flex-col justify-between gap-4 ${
-                isDetected
-                  ? 'border-indigo-500/60 ring-1 ring-indigo-500/20 shadow-sm'
-                  : 'border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
+              className={`tactile-card p-5 transition-colors flex flex-col justify-between gap-4 ${
+                isDetected ? 'border-l-4 border-l-[var(--accent-primary)]' : ''
               }`}
+              style={
+                isDetected ? { borderColor: 'var(--accent-primary)' } : undefined
+              }
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-[var(--border-hairline)]"
+                    style={
                       isDetected
-                        ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-                    }`}
+                        ? {
+                            backgroundColor: 'var(--accent-primary-soft)',
+                            color: 'var(--accent-primary-text)',
+                          }
+                        : {
+                            backgroundColor: 'var(--bg-subtle)',
+                            color: 'var(--text-secondary)',
+                          }
+                    }
                   >
                     <Icon className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      <h3 className="text-sm font-semibold text-[var(--text-primary)]">
                         {card.title}
                       </h3>
-                      {isDetected && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">
-                          Recommended
-                        </span>
-                      )}
+                      <span
+                        className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                        style={
+                          isDetected
+                            ? {
+                                backgroundColor: 'var(--accent-primary-soft)',
+                                color: 'var(--accent-primary-text)',
+                              }
+                            : {
+                                backgroundColor: 'var(--bg-subtle)',
+                                color: 'var(--text-muted)',
+                              }
+                        }
+                      >
+                        {isDetected ? 'Recommended' : card.badge}
+                      </span>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">
                       {card.subtitle}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800/80">
-                <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
-                  {card.asset ? `${card.asset.name}${sizeStr ? ` · ${sizeStr}` : ''}` : `${resolvedAssets.version} · Open Releases`}
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-[var(--border-hairline)]">
+                <span className="text-xs text-[var(--text-muted)] tabular-nums truncate">
+                  {card.asset
+                    ? `${card.asset.name}${sizeStr ? ` · ${sizeStr}` : ''}`
+                    : `${resolvedAssets.version} · Open Releases`}
                 </span>
                 <a
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors shrink-0 ${
-                    isDetected
-                      ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                      : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100'
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold shrink-0 ${
+                    isDetected ? 'tactile-btn-primary' : 'tactile-btn'
                   }`}
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -374,21 +441,21 @@ export const DownloadDesktopView: React.FC = () => {
       </div>
 
       {/* Web to Desktop 10-Second Migration Guide */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-6">
+      <div className="tactile-card p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
           <div>
-            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-indigo-500" />
+            <h2 className="text-base font-semibold text-[var(--text-primary)] flex items-center gap-2">
+              <KeyRound className="w-4 h-4" style={{ color: 'var(--accent-primary-text)' }} />
               <span>Move your data from Web to Desktop in 10 seconds</span>
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-[var(--text-muted)] mt-1">
               Encrypted with AES-256-GCM + PBKDF2 so your vault file is safe even on a thumb drive.
             </p>
           </div>
           <button
             type="button"
             onClick={() => openImportExport('backup')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+            className="tactile-btn-primary inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold shrink-0 cursor-pointer"
           >
             <ShieldCheck className="w-4 h-4" />
             <span>Export .vledger Backup</span>
@@ -414,17 +481,17 @@ export const DownloadDesktopView: React.FC = () => {
               desc: 'Open Import/Export → Encrypted Backup in the desktop app and select your .vledger file.',
             },
           ].map((item) => (
-            <div
-              key={item.step}
-              className="rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 p-4"
-            >
-              <span className="text-[11px] font-bold font-mono text-indigo-600 dark:text-indigo-400">
+            <div key={item.step} className="tactile-well p-4">
+              <span
+                className="text-[11px] font-bold font-mono tabular-nums"
+                style={{ color: 'var(--accent-primary-text)' }}
+              >
                 STEP {item.step}
               </span>
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mt-1">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] mt-1">
                 {item.title}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+              <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
                 {item.desc}
               </p>
             </div>

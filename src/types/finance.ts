@@ -16,6 +16,7 @@ export type NavSection =
   | 'budgets'
   | 'recurring'
   | 'goals'
+  | 'forecast'
   | 'accounts'
   | 'rules'
   | 'download';
@@ -148,6 +149,7 @@ export interface BankImportPreset {
 export interface VaultSettings {
   baseCurrency: CurrencyCode;
   exchangeRates: Record<CurrencyCode, number>; // value of 1 baseCurrency in target currency
+  exchangeRatesUpdatedAt?: string;
   theme: 'dark' | 'light';
   privacyMask: boolean;
   passcodeHash: string | null; // PBKDF2 hash if vault screen lock enabled
@@ -168,6 +170,7 @@ export interface VaultData {
   savingsGoals: SavingsGoal[];
   rules: CategoryRule[];
   importPresets: BankImportPreset[];
+  forecastMilestones?: ForecastMilestone[];
   settings: VaultSettings;
 }
 
@@ -250,6 +253,116 @@ export interface ProactiveInsight {
   actionLabel?: string;
   actionTarget?: NavSection;
   filterCategoryId?: string;
+}
+
+export type HealthMetricStatus = 'strong' | 'fair' | 'attention';
+
+export interface HealthMetric {
+  id: 'savings_rate' | 'budget_adherence' | 'emergency_runway' | 'debt_ratio' | 'fixed_cost_ratio';
+  label: string;
+  score: number; // 0-100
+  weight: number; // 0-1, sum = 1
+  displayValue: string;
+  benchmarkLabel: string;
+  status: HealthMetricStatus;
+  explanation: string;
+  actionTarget: NavSection;
+}
+
+export interface HealthScoreResult {
+  score: number; // 0-100 rounded integer
+  grade: 'A+' | 'A' | 'B+' | 'B' | 'C' | 'D';
+  summary: string;
+  metrics: HealthMetric[];
+}
+
+export interface VaultAnswerDrillAction {
+  label: string;
+  nav: NavSection;
+  categoryId?: string;
+  searchQuery?: string;
+  date?: string;
+}
+
+export interface VaultAnswerRow {
+  id: string;
+  label: string;
+  sublabel?: string;
+  amount: number;
+  percent?: number;
+  filterCategoryId?: string;
+  filterSearch?: string;
+}
+
+export interface VaultAnswer {
+  matched: boolean;
+  intent:
+    | 'category_spend'
+    | 'merchant_spend'
+    | 'compare_period'
+    | 'top_merchants'
+    | 'top_categories'
+    | 'subscriptions'
+    | 'daily_spend'
+    | 'net_worth'
+    | 'safe_to_spend'
+    | 'savings_rate'
+    | 'largest_transactions'
+    | 'keyword_search'
+    | 'empty';
+  headline: string;
+  periodLabel: string;
+  primaryAmount?: number;
+  primaryText?: string;
+  primaryLabel?: string;
+  deltaText?: string;
+  deltaTone?: 'positive' | 'negative' | 'neutral';
+  summary: string;
+  rows: VaultAnswerRow[];
+  drillAction?: VaultAnswerDrillAction;
+}
+
+export interface ForecastMilestone {
+  id: string;
+  label: string;
+  monthOffset: number; // 1..60
+  amount: number; // positive = inflow/windfall, negative = outflow/expense
+  recurring: boolean; // false = one-time lump sum, true = recurring monthly delta starting at monthOffset
+  enabled: boolean;
+}
+
+export interface ForecastInput {
+  currentNetWorth: number;
+  currentLiquidAssets: number;
+  currentDebt: number;
+  baselineMonthlyIncome: number;
+  baselineMonthlyExpense: number;
+  horizonMonths: 12 | 60;
+  incomeChangePct: number; // -30..50
+  expenseChangePct: number; // -40..25
+  expectedAnnualReturnPct: number; // 0..12
+  milestones: ForecastMilestone[];
+}
+
+export interface ForecastPoint {
+  monthIndex: number; // 0..horizonMonths
+  monthKey: string; // YYYY-MM
+  label: string; // e.g. "Nov 26"
+  baselineNetWorth: number;
+  scenarioNetWorth: number;
+  scenarioCashflow: number;
+  milestoneLabels: string[];
+}
+
+export interface ForecastResult {
+  points: ForecastPoint[];
+  endingBaselineNetWorth: number;
+  endingScenarioNetWorth: number;
+  netWorthDelta: number;
+  projectedMonthlyIncome: number;
+  projectedMonthlyExpense: number;
+  projectedMonthlySavings: number;
+  totalMilestoneImpact: number;
 }
 
 export interface DebtPayoffInput {

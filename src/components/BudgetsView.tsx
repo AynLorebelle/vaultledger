@@ -7,6 +7,7 @@ import {
   Check,
   Trash2,
   ArrowUpRight,
+  LineChart,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { computeCategorySpend, computeDashboardKPIs } from '../core/analytics';
@@ -23,25 +24,25 @@ const GROUP_SECTIONS: Array<{
   group: Exclude<CategoryGroup, 'income'>;
   title: string;
   subtitle: string;
-  accent: string;
+  accentStyle: React.CSSProperties;
 }> = [
   {
     group: 'needs',
     title: 'Essential Needs',
     subtitle: 'Housing, groceries, utilities, transit & healthcare',
-    accent: 'text-sky-600 dark:text-sky-400',
+    accentStyle: { color: 'var(--accent-info)' },
   },
   {
     group: 'wants',
     title: 'Lifestyle & Wants',
     subtitle: 'Dining, coffee, shopping, entertainment & travel',
-    accent: 'text-indigo-600 dark:text-indigo-400',
+    accentStyle: { color: 'var(--accent-primary-text)' },
   },
   {
     group: 'savings',
     title: 'Savings & Investments',
     subtitle: 'Emergency fund, retirement & wealth building',
-    accent: 'text-emerald-600 dark:text-emerald-400',
+    accentStyle: { color: 'var(--accent-positive)' },
   },
 ];
 
@@ -51,6 +52,7 @@ export const BudgetsView: React.FC = () => {
   const updateCategory = useFinanceStore((s) => s.updateCategory);
   const deleteCategory = useFinanceStore((s) => s.deleteCategory);
   const drillDownCategory = useFinanceStore((s) => s.drillDownCategory);
+  const setActiveNav = useFinanceStore((s) => s.setActiveNav);
   const showToast = useFinanceStore((s) => s.showToast);
 
   const currency = data.settings.baseCurrency;
@@ -92,7 +94,7 @@ export const BudgetsView: React.FC = () => {
   const remaining = totalBudget - totalSpent;
   const overallPct = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : 0;
 
-  // Top 5 categories for the What-If simulator
+  // Top 6 categories for the What-If simulator
   const simCategories = useMemo(() => {
     return data.categories
       .filter((c) => c.group !== 'income' && (c.monthlyBudget > 0 || (spendByCatId.get(c.id)?.spent ?? 0) > 0))
@@ -162,22 +164,29 @@ export const BudgetsView: React.FC = () => {
     setAddModalOpen(false);
   };
 
+  const overallBarColor =
+    remaining < 0
+      ? 'var(--accent-danger)'
+      : overallPct >= 80
+      ? 'var(--accent-warning)'
+      : 'var(--accent-positive)';
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
             Monthly Budgets &amp; Envelopes
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
             Click any budget limit to edit inline · Toggle envelope rollover to carry unused balances forward
           </p>
         </div>
         <button
           type="button"
           onClick={() => setAddModalOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm cursor-pointer self-start sm:self-auto"
+          className="tactile-btn-primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Add Category</span>
@@ -185,46 +194,43 @@ export const BudgetsView: React.FC = () => {
       </div>
 
       {/* Top Budget Overview Bar */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-5 shadow-xs">
+      <div className="tactile-card p-5">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Monthly Effective Budget</div>
-            <div className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5">
+            <div className="text-xs text-[var(--text-muted)]">Monthly Effective Budget</div>
+            <div className="text-2xl font-bold text-[var(--text-primary)] mt-0.5 tabular-nums">
               <Money amount={totalBudget} currency={currency} privacyMask={privacyMask} />
             </div>
           </div>
           <div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Spent This Month</div>
-            <div className="text-2xl font-bold text-slate-900 dark:text-white mt-0.5">
+            <div className="text-xs text-[var(--text-muted)]">Spent This Month</div>
+            <div className="text-2xl font-bold text-[var(--text-primary)] mt-0.5 tabular-nums">
               <Money amount={totalSpent} currency={currency} privacyMask={privacyMask} />
             </div>
           </div>
           <div>
-            <div className="text-xs text-slate-500 dark:text-slate-400">
+            <div className="text-xs text-[var(--text-muted)]">
               {remaining >= 0 ? 'Remaining Headroom' : 'Over Budget'}
             </div>
             <div
-              className={`text-2xl font-bold mt-0.5 ${
-                remaining >= 0
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-rose-600 dark:text-rose-400'
-              }`}
+              className="text-2xl font-bold mt-0.5 tabular-nums"
+              style={{
+                color: remaining >= 0 ? 'var(--accent-positive)' : 'var(--accent-danger)',
+              }}
             >
               <Money amount={Math.abs(remaining)} currency={currency} privacyMask={privacyMask} />
             </div>
           </div>
         </div>
-        <div className="h-2.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+        <div className="tactile-well h-2.5 w-full rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all ${
-              remaining < 0
-                ? 'bg-rose-500'
-                : overallPct >= 80
-                ? 'bg-amber-500'
-                : 'bg-emerald-500'
-            }`}
-            style={{ width: `${overallPct}%` }}
+            className="h-full rounded-full transition-all"
+            style={{ width: `${overallPct}%`, backgroundColor: overallBarColor }}
           />
+        </div>
+        <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--text-muted)] tabular-nums">
+          <span>{overallPct}% of monthly envelopes allocated</span>
+          <span>{categorySpends.length} active categories</span>
         </div>
       </div>
 
@@ -237,10 +243,13 @@ export const BudgetsView: React.FC = () => {
           <section key={sec.group} className="space-y-3">
             <div className="flex items-baseline justify-between">
               <div>
-                <h2 className={`text-sm font-bold uppercase tracking-wider ${sec.accent}`}>
+                <h2
+                  className="text-xs font-bold uppercase tracking-wider"
+                  style={sec.accentStyle}
+                >
                   {sec.title}
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{sec.subtitle}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">{sec.subtitle}</p>
               </div>
             </div>
 
@@ -255,16 +264,23 @@ export const BudgetsView: React.FC = () => {
                 const caution = !over && pct >= 80;
                 const isEditing = editingBudgetId === cat.id;
 
+                const barFill = over
+                  ? 'var(--accent-danger)'
+                  : caution
+                  ? 'var(--accent-warning)'
+                  : 'var(--accent-positive)';
+
                 return (
                   <div
                     key={cat.id}
-                    className={`rounded-2xl p-4 bg-white dark:bg-slate-900/70 border transition-all ${
+                    className="tactile-card p-4 transition-colors"
+                    style={
                       over
-                        ? 'border-rose-500/40 bg-rose-500/[0.02]'
+                        ? { borderColor: 'var(--accent-danger)' }
                         : caution
-                        ? 'border-amber-500/35'
-                        : 'border-slate-200 dark:border-slate-800/80'
-                    }`}
+                        ? { borderColor: 'var(--accent-warning)' }
+                        : undefined
+                    }
                   >
                     <div className="flex items-start justify-between gap-2">
                       <button
@@ -273,17 +289,17 @@ export const BudgetsView: React.FC = () => {
                         className="flex items-center gap-2.5 text-left group min-w-0 cursor-pointer"
                       >
                         <div
-                          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-[var(--border-hairline)]"
                           style={{ backgroundColor: `${cat.color}1e`, color: cat.color }}
                         >
                           <CategoryIcon icon={cat.icon} className="w-4 h-4" />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100 group-hover:text-indigo-500 flex items-center gap-1 truncate">
+                          <div className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-primary-text)] flex items-center gap-1 truncate transition-colors">
                             <span className="truncate">{cat.name}</span>
-                            <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0" />
+                            <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 shrink-0 transition-opacity" />
                           </div>
-                          <div className="text-[11px] text-slate-400 tabular-nums">
+                          <div className="text-[11px] text-[var(--text-muted)] tabular-nums">
                             {summary?.transactionCount ?? 0} txns this month
                           </div>
                         </div>
@@ -304,8 +320,9 @@ export const BudgetsView: React.FC = () => {
                                 if (e.key === 'Enter') commitInlineBudget(cat.id);
                                 if (e.key === 'Escape') setEditingBudgetId(null);
                               }}
+                              aria-label={`Monthly budget limit for ${cat.name}`}
                               autoFocus
-                              className="w-20 rounded-lg bg-slate-100 dark:bg-slate-950 border border-indigo-500 px-2 py-1 text-xs font-semibold tabular-nums text-right outline-none"
+                              className="tactile-input w-20 px-2 py-1 text-xs font-semibold tabular-nums text-right"
                             />
                             <button
                               type="button"
@@ -313,7 +330,8 @@ export const BudgetsView: React.FC = () => {
                                 e.preventDefault();
                                 commitInlineBudget(cat.id);
                               }}
-                              className="p-1 rounded bg-indigo-600 text-white cursor-pointer"
+                              aria-label={`Save monthly budget for ${cat.name}`}
+                              className="tactile-btn-primary p-1.5 rounded-lg cursor-pointer"
                             >
                               <Check className="w-3 h-3" />
                             </button>
@@ -325,7 +343,7 @@ export const BudgetsView: React.FC = () => {
                               setEditingBudgetId(cat.id);
                               setEditingBudgetVal(String(cat.monthlyBudget));
                             }}
-                            className="text-xs font-semibold px-2 py-1 rounded-lg bg-slate-100/90 dark:bg-slate-800/80 hover:bg-indigo-500/15 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors cursor-pointer"
+                            className="tactile-btn text-xs font-semibold px-2.5 py-1 rounded-lg tabular-nums cursor-pointer"
                             title="Click to edit monthly budget"
                           >
                             {cat.monthlyBudget > 0 ? (
@@ -335,7 +353,7 @@ export const BudgetsView: React.FC = () => {
                                 privacyMask={privacyMask}
                               />
                             ) : (
-                              <span className="text-slate-400">Set limit</span>
+                              <span className="text-[var(--text-muted)]">Set limit</span>
                             )}
                           </button>
                         )}
@@ -350,19 +368,18 @@ export const BudgetsView: React.FC = () => {
                           currency={currency}
                           privacyMask={privacyMask}
                           className={`font-semibold ${
-                            over
-                              ? 'text-rose-600 dark:text-rose-400'
-                              : 'text-slate-900 dark:text-slate-100'
+                            over ? 'text-[var(--accent-danger)]' : 'text-[var(--text-primary)]'
                           }`}
                         />
                         <span
-                          className={`text-[11px] font-medium tabular-nums ${
-                            over
-                              ? 'text-rose-600 dark:text-rose-400'
+                          className="text-[11px] font-semibold tabular-nums"
+                          style={{
+                            color: over
+                              ? 'var(--accent-danger)'
                               : caution
-                              ? 'text-amber-600 dark:text-amber-400'
-                              : 'text-slate-400'
-                          }`}
+                              ? 'var(--accent-warning)'
+                              : 'var(--text-muted)',
+                          }}
                         >
                           {effective > 0
                             ? over
@@ -371,35 +388,37 @@ export const BudgetsView: React.FC = () => {
                             : 'No limit'}
                         </span>
                       </div>
-                      <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <div className="tactile-well h-2 w-full rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${Math.min(100, pct)}%`,
-                            backgroundColor: over
-                              ? '#f43f5e'
-                              : caution
-                              ? '#f59e0b'
-                              : cat.color,
+                            backgroundColor: barFill,
                           }}
                         />
                       </div>
                     </div>
 
                     {/* Footer: Rollover toggle + delete custom */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px]">
-                      <label className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400 cursor-pointer select-none">
+                    <div className="mt-3 pt-2.5 border-t border-[var(--border-hairline)] flex items-center justify-between text-[11px]">
+                      <label className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={cat.rolloverEnabled}
                           onChange={() =>
                             updateCategory(cat.id, { rolloverEnabled: !cat.rolloverEnabled })
                           }
-                          className="rounded border-slate-300 dark:border-slate-700 text-indigo-600"
+                          className="rounded border-[var(--border-strong)] accent-[var(--accent-primary)]"
                         />
                         <span>Envelope Rollover</span>
                         {cat.rolloverEnabled && rollover !== 0 && (
-                          <span className="px-1.5 py-0.2 rounded bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 font-semibold">
+                          <span
+                            className="px-1.5 py-0.5 rounded font-semibold tabular-nums"
+                            style={{
+                              backgroundColor: 'var(--accent-positive-soft)',
+                              color: 'var(--accent-positive)',
+                            }}
+                          >
                             <Money
                               amount={rollover}
                               currency={currency}
@@ -418,8 +437,9 @@ export const BudgetsView: React.FC = () => {
                               deleteCategory(cat.id);
                             }
                           }}
-                          className="p-1 text-slate-400 hover:text-rose-500 cursor-pointer"
+                          className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-danger)] hover:bg-[var(--accent-danger-soft)] transition-colors cursor-pointer"
                           title="Delete custom category"
+                          aria-label={`Delete category ${cat.name}`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -435,28 +455,42 @@ export const BudgetsView: React.FC = () => {
 
       {/* Interactive "What-If" Budget Simulator */}
       {simCategories.length > 0 && (
-        <section className="rounded-2xl bg-gradient-to-br from-indigo-600/8 via-white to-emerald-500/8 dark:from-indigo-500/12 dark:via-slate-900/90 dark:to-emerald-500/10 border border-indigo-500/25 p-6 shadow-xs">
+        <section className="tactile-card border-l-4 border-l-[var(--accent-primary)] p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  backgroundColor: 'var(--accent-primary-soft)',
+                  color: 'var(--accent-primary-text)',
+                }}
+              >
                 <Sliders className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                <h2 className="text-base font-bold text-[var(--text-primary)] tracking-tight">
                   Interactive &ldquo;What-If&rdquo; Budget Simulator
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
                   Drag sliders below to see how trimming top categories accelerates your annual savings
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveNav('forecast')}
+                className="tactile-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer"
+              >
+                <LineChart className="w-3.5 h-3.5 text-[var(--accent-primary-text)]" />
+                <span>Open 5-Year Forecast Lab</span>
+              </button>
               {simMetrics.hasChanges && (
                 <button
                   type="button"
                   onClick={() => setSimOverrides({})}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer"
+                  className="tactile-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-[var(--text-secondary)] cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   Reset
@@ -466,7 +500,7 @@ export const BudgetsView: React.FC = () => {
                 type="button"
                 disabled={!simMetrics.hasChanges}
                 onClick={applySimulatedBudgets}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+                className="tactile-btn-primary inline-flex items-center gap-1.5 px-4 py-2 rounded-xl disabled:opacity-40 text-xs font-semibold cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 Apply Simulated Budgets
@@ -487,10 +521,10 @@ export const BudgetsView: React.FC = () => {
                 return (
                   <div
                     key={cat.id}
-                    className="rounded-xl bg-white/85 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 p-3.5 space-y-2"
+                    className="tactile-well p-3.5 space-y-2"
                   >
                     <div className="flex items-center justify-between gap-2 text-xs">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                      <span className="font-semibold text-[var(--text-primary)] truncate">
                         {cat.name}
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -498,13 +532,14 @@ export const BudgetsView: React.FC = () => {
                           amount={current}
                           currency={currency}
                           privacyMask={privacyMask}
-                          className="font-bold text-slate-900 dark:text-white"
+                          className="font-bold text-[var(--text-primary)]"
                         />
                         {diff !== 0 && (
                           <span
-                            className={`text-[10px] font-semibold tabular-nums ${
-                              diff > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'
-                            }`}
+                            className="text-[10px] font-semibold tabular-nums"
+                            style={{
+                              color: diff > 0 ? 'var(--accent-positive)' : 'var(--accent-danger)',
+                            }}
                           >
                             ({diff > 0 ? '-' : '+'}
                             {Math.abs(Math.round(diff))})
@@ -518,15 +553,16 @@ export const BudgetsView: React.FC = () => {
                       max={maxVal}
                       step={10}
                       value={current}
+                      aria-label={`Simulated monthly budget for ${cat.name}`}
                       onChange={(e) =>
                         setSimOverrides((prev) => ({
                           ...prev,
                           [cat.id]: Number(e.target.value),
                         }))
                       }
-                      className="w-full accent-indigo-600 cursor-pointer"
+                      className="w-full accent-[var(--accent-primary)] cursor-pointer"
                     />
-                    <div className="flex justify-between text-[10px] text-slate-400 tabular-nums">
+                    <div className="flex justify-between text-[10px] text-[var(--text-muted)] tabular-nums">
                       <span>0</span>
                       <span>Current: {Math.round(baseline)}</span>
                       <span>{maxVal}</span>
@@ -537,18 +573,25 @@ export const BudgetsView: React.FC = () => {
             </div>
 
             {/* Live Impact Summary */}
-            <div className="rounded-2xl bg-slate-900 dark:bg-slate-950 text-white p-5 flex flex-col justify-between gap-4 border border-slate-800">
+            <div className="tactile-well p-5 flex flex-col justify-between gap-4">
               <div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">
+                <div
+                  className="text-[11px] font-semibold uppercase tracking-wider"
+                  style={{ color: 'var(--accent-primary-text)' }}
+                >
                   Projected Impact
                 </div>
                 <div className="mt-3 space-y-3">
                   <div>
-                    <div className="text-xs text-slate-400">Monthly Savings Change</div>
+                    <div className="text-xs text-[var(--text-muted)]">Monthly Savings Change</div>
                     <div
-                      className={`text-2xl font-bold mt-0.5 ${
-                        simMetrics.monthlyDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                      }`}
+                      className="text-2xl font-bold mt-0.5 tabular-nums"
+                      style={{
+                        color:
+                          simMetrics.monthlyDelta >= 0
+                            ? 'var(--accent-positive)'
+                            : 'var(--accent-danger)',
+                      }}
                     >
                       <Money
                         amount={simMetrics.monthlyDelta}
@@ -556,22 +599,25 @@ export const BudgetsView: React.FC = () => {
                         privacyMask={privacyMask}
                         showSign
                       />
-                      <span className="text-xs font-normal text-slate-400"> /mo</span>
+                      <span className="text-xs font-normal text-[var(--text-muted)]"> /mo</span>
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-                    <span className="text-xs text-slate-400">New Savings Rate</span>
-                    <span className="text-sm font-bold tabular-nums text-white">
+                  <div className="pt-3 border-t border-[var(--border-hairline)] flex items-center justify-between">
+                    <span className="text-xs text-[var(--text-secondary)]">New Savings Rate</span>
+                    <span className="text-sm font-bold tabular-nums text-[var(--text-primary)]">
                       {simMetrics.projectedSavingsRate.toFixed(1)}%
                     </span>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800">
-                    <div className="text-xs text-slate-400">
+                  <div className="pt-3 border-t border-[var(--border-hairline)]">
+                    <div className="text-xs text-[var(--text-muted)]">
                       12-Month Compounded Gain (4.5% APY)
                     </div>
-                    <div className="text-xl font-bold text-indigo-300 mt-0.5">
+                    <div
+                      className="text-xl font-bold mt-0.5 tabular-nums"
+                      style={{ color: 'var(--accent-primary-text)' }}
+                    >
                       <Money
                         amount={simMetrics.compounded12Mo}
                         currency={currency}
@@ -582,7 +628,7 @@ export const BudgetsView: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
                 Small adjustments across discretionary categories compound quietly all year without feeling restrictive.
               </p>
             </div>
@@ -600,7 +646,7 @@ export const BudgetsView: React.FC = () => {
       >
         <form onSubmit={handleAddCategory} className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               Category Name
             </label>
             <input
@@ -610,19 +656,19 @@ export const BudgetsView: React.FC = () => {
               placeholder="e.g. Pets, Side Hustle, Hobbies"
               required
               autoFocus
-              className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500"
+              className="tactile-input w-full px-3.5 py-2.5 text-sm"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Budget Group
               </label>
               <select
                 value={newGroup}
                 onChange={(e) => setNewGroup(e.target.value as CategoryGroup)}
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2.5 text-sm outline-none"
+                className="tactile-input w-full px-3 py-2.5 text-sm"
               >
                 <option value="needs">Needs</option>
                 <option value="wants">Wants</option>
@@ -633,7 +679,7 @@ export const BudgetsView: React.FC = () => {
 
             {newGroup !== 'income' && (
               <div>
-                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                   Monthly Limit ({currency})
                 </label>
                 <input
@@ -642,14 +688,14 @@ export const BudgetsView: React.FC = () => {
                   step="10"
                   value={newBudget}
                   onChange={(e) => setNewBudget(e.target.value)}
-                  className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2.5 text-sm tabular-nums outline-none"
+                  className="tactile-input w-full px-3 py-2.5 text-sm tabular-nums"
                 />
               </div>
             )}
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
               Accent Color
             </label>
             <div className="flex flex-wrap gap-2">
@@ -658,8 +704,10 @@ export const BudgetsView: React.FC = () => {
                   key={c}
                   type="button"
                   onClick={() => setNewColor(c)}
+                  aria-label={`Select color ${c}`}
+                  aria-pressed={newColor === c}
                   className={`w-7 h-7 rounded-full transition-transform cursor-pointer ${
-                    newColor === c ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110 dark:ring-offset-slate-900' : ''
+                    newColor === c ? 'ring-2 ring-offset-2 ring-[var(--focus-ring)] ring-offset-[var(--bg-surface)] scale-110' : ''
                   }`}
                   style={{ backgroundColor: c }}
                 />
@@ -668,51 +716,56 @@ export const BudgetsView: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
               Icon
             </label>
             <div className="grid grid-cols-5 gap-1.5">
-              {AVAILABLE_CATEGORY_ICONS.slice(0, 15).map((ic) => (
-                <button
-                  key={ic.id}
-                  type="button"
-                  onClick={() => setNewIcon(ic.id)}
-                  className={`p-2 rounded-xl border flex items-center justify-center transition-colors cursor-pointer ${
-                    newIcon === ic.id
-                      ? 'border-indigo-500 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300'
-                      : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                  title={ic.label}
-                >
-                  <CategoryIcon icon={ic.id} className="w-4 h-4" />
-                </button>
-              ))}
+              {AVAILABLE_CATEGORY_ICONS.slice(0, 15).map((ic) => {
+                const selected = newIcon === ic.id;
+                return (
+                  <button
+                    key={ic.id}
+                    type="button"
+                    onClick={() => setNewIcon(ic.id)}
+                    className={`p-2 rounded-xl border flex items-center justify-center transition-colors cursor-pointer ${
+                      selected
+                        ? 'border-[var(--accent-primary)] bg-[var(--accent-primary-soft)] text-[var(--accent-primary-text)]'
+                        : 'border-[var(--border-hairline)] text-[var(--text-muted)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]'
+                    }`}
+                    title={ic.label}
+                    aria-label={`Select ${ic.label} icon`}
+                    aria-pressed={selected}
+                  >
+                    <CategoryIcon icon={ic.id} className="w-4 h-4" />
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {newGroup !== 'income' && (
-            <label className="inline-flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+            <label className="inline-flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={newRollover}
                 onChange={(e) => setNewRollover(e.target.checked)}
-                className="rounded border-slate-300 text-indigo-600"
+                className="rounded border-[var(--border-strong)] accent-[var(--accent-primary)]"
               />
               <span>Enable envelope rollover for unused budget</span>
             </label>
           )}
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200/80 dark:border-slate-800">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border-hairline)]">
             <button
               type="button"
               onClick={() => setAddModalOpen(false)}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              className="tactile-btn px-4 py-2 rounded-xl text-xs font-medium cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
+              className="tactile-btn-primary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer"
             >
               Create Category
             </button>

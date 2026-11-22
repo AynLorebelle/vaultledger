@@ -1,5 +1,5 @@
 // VaultLedger Offline-First Service Worker
-const CACHE_NAME = 'vaultledger-cache-v1';
+const CACHE_NAME = 'vaultledger-cache-v2';
 const SHELL_ASSETS = [
   './',
   './index.html',

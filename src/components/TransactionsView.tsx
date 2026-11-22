@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Search,
   CheckCircle2,
+  CircleDashed,
   Edit3,
   Trash2,
   Paperclip,
@@ -13,9 +14,12 @@ import {
   Check,
   Filter,
   Plus,
+  Inbox,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { filterTransactionsByRange } from '../core/analytics';
+import { convertCurrency } from '../core/currency';
 import { loadReceiptDataUrl } from '../core/storage';
 import type { ReceiptAttachment, Transaction } from '../types/finance';
 import { CategoryIcon, Modal, Money, formatShortDate } from './ui';
@@ -27,8 +31,10 @@ export const TransactionsView: React.FC = () => {
   const timeRange = useFinanceStore((s) => s.timeRange);
   const selectedCategoryFilter = useFinanceStore((s) => s.selectedCategoryFilter);
   const selectedDateFilter = useFinanceStore((s) => s.selectedDateFilter);
+  const selectedSearchFilter = useFinanceStore((s) => s.selectedSearchFilter);
   const drillDownCategory = useFinanceStore((s) => s.drillDownCategory);
   const drillDownDate = useFinanceStore((s) => s.drillDownDate);
+  const drillDownSearch = useFinanceStore((s) => s.drillDownSearch);
   const openQuickAdd = useFinanceStore((s) => s.openQuickAdd);
   const updateTransaction = useFinanceStore((s) => s.updateTransaction);
   const deleteTransactions = useFinanceStore((s) => s.deleteTransactions);
@@ -37,11 +43,13 @@ export const TransactionsView: React.FC = () => {
   const showToast = useFinanceStore((s) => s.showToast);
 
   const [activeTab, setActiveTab] = useState<TxTab>('all');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => selectedSearchFilter ?? '');
   const [accountFilter, setAccountFilter] = useState('');
   const [localCategoryFilter, setLocalCategoryFilter] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [lastClickedRowId, setLastClickedRowId] = useState<string | null>(null);
   const [bulkTagInput, setBulkTagInput] = useState('');
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [receiptModal, setReceiptModal] = useState<{
     receipt: ReceiptAttachment;
     payee: string;
@@ -51,26 +59,33 @@ export const TransactionsView: React.FC = () => {
   const currency = data.settings.baseCurrency;
   const privacyMask = data.settings.privacyMask;
 
+  // Sync store search drill-down into local search bar
+  useEffect(() => {
+    if (selectedSearchFilter !== null) {
+      setSearch(selectedSearchFilter);
+    }
+  }, [selectedSearchFilter]);
+
   const accountMap = useMemo(
     () => new Map(data.accounts.map((a) => [a.id, a])),
-    [data.accounts]
+    [data.accounts],
   );
   const categoryMap = useMemo(
     () => new Map(data.categories.map((c) => [c.id, c])),
-    [data.categories]
+    [data.categories],
   );
 
   const unreviewedCount = useMemo(
     () => data.transactions.filter((t) => !t.reviewed).length,
-    [data.transactions]
+    [data.transactions],
   );
 
   const effectiveCategoryFilter = selectedCategoryFilter || localCategoryFilter;
 
   const filteredTransactions = useMemo(() => {
-    // If drilling down to a specific date or viewing Inbox, search across all dates so items aren't hidden by range
+    // If drilling down to a specific date, search query, or viewing Inbox, search across all dates so items aren't hidden by range
     const baseList =
-      selectedDateFilter || activeTab === 'inbox'
+      selectedDateFilter || selectedSearchFilter || activeTab === 'inbox'
         ? data.transactions
         : filterTransactionsByRange(data.transactions, timeRange);
 
@@ -86,14 +101,18 @@ export const TransactionsView: React.FC = () => {
 
         if (selectedDateFilter && tx.date !== selectedDateFilter) return false;
 
-        if (accountFilter && tx.accountId !== accountFilter && tx.transferAccountId !== accountFilter) {
+        if (
+          accountFilter &&
+          tx.accountId !== accountFilter &&
+          tx.transferAccountId !== accountFilter
+        ) {
           return false;
         }
 
         if (effectiveCategoryFilter) {
           const matchesPrimary = tx.categoryId === effectiveCategoryFilter;
           const matchesSplit = Boolean(
-            tx.splits?.some((sp) => sp.categoryId === effectiveCategoryFilter)
+            tx.splits?.some((sp) => sp.categoryId === effectiveCategoryFilter),
           );
           if (!matchesPrimary && !matchesSplit) return false;
         }
@@ -113,6 +132,7 @@ export const TransactionsView: React.FC = () => {
     timeRange,
     activeTab,
     selectedDateFilter,
+    selectedSearchFilter,
     accountFilter,
     effectiveCategoryFilter,
     search,
@@ -120,38 +140,113 @@ export const TransactionsView: React.FC = () => {
     accountMap,
   ]);
 
+  // Compute live selected transactions & net sum in base currency
+  const selectedNetSum = useMemo(() => {
+    if (selectedIds.size === 0) return 0;
+    let sum = 0;
+    for (const tx of data.transactions) {
+      if (!selectedIds.has(tx.id)) continue;
+      if (tx.type === 'transfer') continue;
+      const accCurrency = accountMap.get(tx.accountId)?.currency ?? currency;
+      const converted = convertCurrency(tx.amount, accCurrency, currency, data.settings);
+      if (tx.type === 'expense') {
+        sum -= Math.abs(converted);
+      } else {
+        sum += Math.abs(converted);
+      }
+    }
+    return sum;
+  }, [selectedIds, data.transactions, accountMap, currency, data.settings]);
+
   const allVisibleSelected =
     filteredTransactions.length > 0 &&
     filteredTransactions.every((t) => selectedIds.has(t.id));
 
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setConfirmBulkDelete(false);
+    setLastClickedRowId(null);
+  };
+
   const toggleSelectAll = () => {
+    setConfirmBulkDelete(false);
     if (allVisibleSelected) {
       setSelectedIds(new Set());
+      setLastClickedRowId(null);
     } else {
       setSelectedIds(new Set(filteredTransactions.map((t) => t.id)));
     }
   };
 
-  const toggleRow = (id: string) => {
+  const handleRowSelect = (id: string, shiftKey: boolean) => {
+    setConfirmBulkDelete(false);
+    if (shiftKey && lastClickedRowId) {
+      const visibleIds = filteredTransactions.map((t) => t.id);
+      const startIdx = visibleIds.indexOf(lastClickedRowId);
+      const endIdx = visibleIds.indexOf(id);
+      if (startIdx !== -1 && endIdx !== -1) {
+        const [lo, hi] = startIdx <= endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
+        const rangeIds = visibleIds.slice(lo, hi + 1);
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          const shouldSelect = !prev.has(id);
+          for (const rid of rangeIds) {
+            if (shouldSelect) next.add(rid);
+            else next.delete(rid);
+          }
+          return next;
+        });
+        setLastClickedRowId(id);
+        return;
+      }
+    }
+
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+    setLastClickedRowId(id);
   };
 
-  const handleBulkReview = () => {
+  const handleBulkReview = (reviewed: boolean) => {
     const ids = Array.from(selectedIds);
-    bulkUpdateTransactions(ids, { reviewed: true });
-    setSelectedIds(new Set());
+    if (ids.length === 0) return;
+    bulkUpdateTransactions(ids, { reviewed });
+    clearSelection();
+    showToast(
+      `Marked ${ids.length} transaction${ids.length === 1 ? '' : 's'} as ${
+        reviewed ? 'reviewed' : 'unreviewed'
+      }`,
+      'success',
+    );
   };
 
   const handleBulkCategory = (catId: string) => {
     if (!catId) return;
     const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const catName = categoryMap.get(catId)?.name ?? 'selected category';
     bulkUpdateTransactions(ids, { categoryId: catId });
-    setSelectedIds(new Set());
+    clearSelection();
+    showToast(
+      `Updated ${ids.length} transaction${ids.length === 1 ? '' : 's'} to ${catName}`,
+      'success',
+    );
+  };
+
+  const handleBulkMoveAccount = (accountId: string) => {
+    if (!accountId) return;
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const accName = accountMap.get(accountId)?.name ?? 'selected account';
+    bulkUpdateTransactions(ids, { accountId });
+    clearSelection();
+    showToast(
+      `Moved ${ids.length} transaction${ids.length === 1 ? '' : 's'} to ${accName}`,
+      'success',
+    );
   };
 
   const handleBulkAddTag = (e: React.FormEvent) => {
@@ -159,18 +254,40 @@ export const TransactionsView: React.FC = () => {
     const cleaned = bulkTagInput.replace(/^#/, '').trim().toLowerCase();
     if (!cleaned) return;
     const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
     bulkUpdateTransactions(ids, { addTags: [cleaned] });
     setBulkTagInput('');
-    setSelectedIds(new Set());
-    showToast(`Added #${cleaned} to ${ids.length} transactions`, 'success');
+    clearSelection();
+    showToast(
+      `Added #${cleaned} to ${ids.length} transaction${ids.length === 1 ? '' : 's'}`,
+      'success',
+    );
   };
 
-  const handleBulkDelete = () => {
+  const handleConfirmBulkDelete = () => {
     const ids = Array.from(selectedIds);
-    if (window.confirm(`Delete ${ids.length} selected transaction(s)? You can still Undo with Ctrl+Z.`)) {
-      deleteTransactions(ids);
-      setSelectedIds(new Set());
-    }
+    const count = ids.length;
+    if (count === 0) return;
+    deleteTransactions(ids);
+    clearSelection();
+    showToast(`Deleted ${count} transactions`, 'info', {
+      label: 'Undo',
+      onClick: () => useFinanceStore.getState().undo(),
+    });
+  };
+
+  const handleDeleteSingle = (tx: Transaction) => {
+    deleteTransactions([tx.id]);
+    setSelectedIds((prev) => {
+      if (!prev.has(tx.id)) return prev;
+      const next = new Set(prev);
+      next.delete(tx.id);
+      return next;
+    });
+    showToast(`Deleted "${tx.payee}"`, 'info', {
+      label: 'Undo',
+      onClick: () => useFinanceStore.getState().undo(),
+    });
   };
 
   const handleQuickCreateRule = (tx: Transaction) => {
@@ -185,6 +302,20 @@ export const TransactionsView: React.FC = () => {
       markReviewed: true,
       priority: (data.rules.length + 1) * 10,
     });
+    showToast(`Created auto-rule for "${tx.payee}"`, 'success');
+  };
+
+  const handleMarkAllInboxReviewed = () => {
+    const inboxIds = data.transactions.filter((t) => !t.reviewed).map((t) => t.id);
+    if (inboxIds.length === 0) return;
+    bulkUpdateTransactions(inboxIds, { reviewed: true });
+    clearSelection();
+    showToast(`Inbox Zero! Marked ${inboxIds.length} transactions as reviewed`, 'success');
+  };
+
+  const handleClearSearchFilter = () => {
+    drillDownSearch(null);
+    setSearch('');
   };
 
   const openReceiptPreview = async (tx: Transaction) => {
@@ -193,6 +324,10 @@ export const TransactionsView: React.FC = () => {
     const url = await loadReceiptDataUrl(tx.receipt);
     setReceiptModal((cur) => (cur ? { ...cur, url } : null));
   };
+
+  const hasDrillDownChip = Boolean(
+    selectedCategoryFilter || selectedDateFilter || selectedSearchFilter,
+  );
 
   const tabs: Array<{ id: TxTab; label: string; count?: number }> = [
     { id: 'all', label: 'All Transactions' },
@@ -203,42 +338,49 @@ export const TransactionsView: React.FC = () => {
     { id: 'refund', label: 'Refunds' },
   ];
 
+  const iconBtnFocus =
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]';
+
   return (
-    <div className="space-y-5 pb-16">
+    <div className="space-y-5 pb-20">
       {/* Header & Tabs */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
             Transactions Ledger
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs text-[var(--text-muted)] mt-0.5 tabular-nums">
             {filteredTransactions.length} matching{' '}
-            {filteredTransactions.length === 1 ? 'entry' : 'entries'}
+            {filteredTransactions.length === 1 ? 'entry' : 'entries'} · Shift+Click to select a range
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Transaction type filters">
           {tabs.map((tab) => {
             const active = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 type="button"
+                role="tab"
+                aria-selected={active}
                 onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-                  active
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${iconBtnFocus} ${
+                  active ? 'tactile-btn-primary' : 'tactile-btn text-[var(--text-secondary)]'
                 }`}
               >
                 <span>{tab.label}</span>
                 {tab.count !== undefined && tab.count > 0 && (
                   <span
-                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums ${
+                    className="px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums"
+                    style={
                       active
-                        ? 'bg-white/20 text-white'
-                        : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
-                    }`}
+                        ? { backgroundColor: 'rgba(255,255,255,0.2)', color: '#FFFFFF' }
+                        : {
+                            backgroundColor: 'var(--accent-warning-soft)',
+                            color: 'var(--accent-warning)',
+                          }
+                    }
                   >
                     {tab.count}
                   </span>
@@ -249,36 +391,131 @@ export const TransactionsView: React.FC = () => {
         </div>
       </div>
 
+      {/* Inbox Zero Status Banner */}
+      {unreviewedCount > 0 ? (
+        <div className="tactile-well px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span
+              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: 'var(--accent-warning-soft)',
+                color: 'var(--accent-warning)',
+              }}
+              aria-hidden="true"
+            >
+              <Inbox className="w-4 h-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-[var(--text-primary)] tabular-nums">
+                {unreviewedCount} unreviewed {unreviewedCount === 1 ? 'transaction' : 'transactions'} in your Inbox
+              </p>
+              <p className="text-[11px] text-[var(--text-muted)]">
+                Review imported or newly logged items to reach Inbox Zero.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {activeTab !== 'inbox' ? (
+              <button
+                type="button"
+                onClick={() => setActiveTab('inbox')}
+                className={`tactile-btn px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${iconBtnFocus}`}
+              >
+                Open Inbox ({unreviewedCount})
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleMarkAllInboxReviewed}
+                className={`tactile-btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${iconBtnFocus}`}
+              >
+                <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                Mark All Reviewed
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        activeTab === 'inbox' && (
+          <div className="tactile-well px-4 py-3 flex items-center gap-2.5">
+            <CheckCircle2
+              className="w-4 h-4 shrink-0"
+              style={{ color: 'var(--accent-positive)' }}
+              aria-hidden="true"
+            />
+            <span className="text-xs font-semibold text-[var(--text-primary)]">
+              Inbox Zero achieved — every transaction in your vault is reviewed.
+            </span>
+          </div>
+        )
+      )}
+
       {/* Active Drill-Down Chips */}
-      {(selectedCategoryFilter || selectedDateFilter) && (
+      {hasDrillDownChip && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5" />
+          <span className="text-xs text-[var(--text-muted)] inline-flex items-center gap-1">
+            <Filter className="w-3.5 h-3.5" aria-hidden="true" />
             Active drill-down:
           </span>
           {selectedCategoryFilter && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold">
-              Category: {categoryMap.get(selectedCategoryFilter)?.name ?? selectedCategoryFilter}
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
+              style={{
+                backgroundColor: 'var(--accent-primary-soft)',
+                borderColor: 'var(--accent-primary)',
+                color: 'var(--accent-primary-text)',
+              }}
+            >
+              <span>
+                Category: {categoryMap.get(selectedCategoryFilter)?.name ?? selectedCategoryFilter}
+              </span>
               <button
                 type="button"
                 onClick={() => drillDownCategory(null)}
-                className="hover:text-rose-500 cursor-pointer"
+                className={`rounded-full p-0.5 hover:bg-[var(--bg-surface)] cursor-pointer ${iconBtnFocus}`}
                 aria-label="Clear category filter"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             </span>
           )}
           {selectedDateFilter && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold">
-              Date: {formatShortDate(selectedDateFilter)}
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
+              style={{
+                backgroundColor: 'var(--accent-primary-soft)',
+                borderColor: 'var(--accent-primary)',
+                color: 'var(--accent-primary-text)',
+              }}
+            >
+              <span>Date: {formatShortDate(selectedDateFilter)}</span>
               <button
                 type="button"
                 onClick={() => drillDownDate(null)}
-                className="hover:text-rose-500 cursor-pointer"
+                className={`rounded-full p-0.5 hover:bg-[var(--bg-surface)] cursor-pointer ${iconBtnFocus}`}
                 aria-label="Clear date filter"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+            </span>
+          )}
+          {selectedSearchFilter && (
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
+              style={{
+                backgroundColor: 'var(--accent-primary-soft)',
+                borderColor: 'var(--accent-primary)',
+                color: 'var(--accent-primary-text)',
+              }}
+            >
+              <span>Search: {selectedSearchFilter}</span>
+              <button
+                type="button"
+                onClick={handleClearSearchFilter}
+                className={`rounded-full p-0.5 hover:bg-[var(--bg-surface)] cursor-pointer ${iconBtnFocus}`}
+                aria-label="Clear search drill-down filter"
+              >
+                <X className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             </span>
           )}
@@ -288,21 +525,29 @@ export const TransactionsView: React.FC = () => {
       {/* Search & Filter Toolbar */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
         <div className="md:col-span-6 relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search
+            className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+            aria-hidden="true"
+          />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search payee, notes, #tags, category, or amount..."
-            className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 pl-10 pr-8 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-indigo-500"
+            aria-label="Search transactions"
+            className="tactile-input w-full pl-10 pr-9 py-2.5 text-sm placeholder:text-[var(--text-muted)]"
           />
           {search && (
             <button
               type="button"
-              onClick={() => setSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+              onClick={() => {
+                setSearch('');
+                if (selectedSearchFilter) drillDownSearch(null);
+              }}
+              aria-label="Clear search query"
+              className={`absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] cursor-pointer ${iconBtnFocus}`}
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -311,7 +556,7 @@ export const TransactionsView: React.FC = () => {
           value={accountFilter}
           onChange={(e) => setAccountFilter(e.target.value)}
           aria-label="Filter by account"
-          className="md:col-span-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500"
+          className="tactile-input md:col-span-3 px-3 py-2.5 text-xs font-medium text-[var(--text-primary)]"
         >
           <option value="">All Accounts</option>
           {data.accounts.map((acc) => (
@@ -328,7 +573,7 @@ export const TransactionsView: React.FC = () => {
             setLocalCategoryFilter(e.target.value);
           }}
           aria-label="Filter by category"
-          className="md:col-span-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500"
+          className="tactile-input md:col-span-3 px-3 py-2.5 text-xs font-medium text-[var(--text-primary)]"
         >
           <option value="">All Categories</option>
           {data.categories.map((cat) => (
@@ -340,18 +585,18 @@ export const TransactionsView: React.FC = () => {
       </div>
 
       {/* Ledger Table */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 overflow-hidden shadow-xs">
+      <div className="tactile-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-950/60 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <tr className="border-b border-[var(--border-hairline)] bg-[var(--bg-subtle)] text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                 <th className="py-3 pl-4 pr-2 w-10">
                   <input
                     type="checkbox"
                     checked={allVisibleSelected}
                     onChange={toggleSelectAll}
                     aria-label="Select all visible transactions"
-                    className="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                    className={`rounded border-[var(--border-strong)] accent-[var(--accent-primary)] cursor-pointer ${iconBtnFocus}`}
                   />
                 </th>
                 <th className="py-3 px-3">Date</th>
@@ -359,33 +604,60 @@ export const TransactionsView: React.FC = () => {
                 <th className="py-3 px-3">Category</th>
                 <th className="py-3 px-3">Account</th>
                 <th className="py-3 px-3 text-right">Amount</th>
-                <th className="py-3 pl-2 pr-4 text-right w-32">Actions</th>
+                <th className="py-3 pl-2 pr-4 text-right w-36">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70 text-sm">
+            <tbody className="divide-y divide-[var(--border-hairline)] text-sm">
               {filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center">
-                    <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  <td colSpan={7} className="py-12 px-4 text-center">
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">
                       {activeTab === 'inbox'
                         ? 'Inbox Zero! All transactions are reviewed.'
                         : 'No transactions match your current filters.'}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => openQuickAdd()}
-                      className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add Transaction
-                    </button>
+                    <p className="text-xs text-[var(--text-muted)] mt-1">
+                      {activeTab === 'inbox'
+                        ? 'New imports and unreviewed entries will appear here.'
+                        : 'Try clearing a filter or log a new transaction.'}
+                    </p>
+                    <div className="mt-4 flex items-center justify-center gap-2">
+                      {(search || accountFilter || effectiveCategoryFilter || hasDrillDownChip) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearch('');
+                            setAccountFilter('');
+                            setLocalCategoryFilter('');
+                            drillDownCategory(null);
+                            drillDownDate(null);
+                            drillDownSearch(null);
+                          }}
+                          className={`tactile-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer ${iconBtnFocus}`}
+                          aria-label="Clear all active filters"
+                        >
+                          <X className="w-3.5 h-3.5" aria-hidden="true" />
+                          Clear Filters
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => openQuickAdd()}
+                        className={`tactile-btn-primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer ${iconBtnFocus}`}
+                      >
+                        <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                        Add Transaction
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 filteredTransactions.map((tx) => {
                   const cat = categoryMap.get(tx.categoryId);
                   const acc = accountMap.get(tx.accountId);
-                  const destAcc = tx.transferAccountId ? accountMap.get(tx.transferAccountId) : null;
+                  const destAcc = tx.transferAccountId
+                    ? accountMap.get(tx.transferAccountId)
+                    : null;
                   const checked = selectedIds.has(tx.id);
                   const hasSplits = Boolean(tx.splits && tx.splits.length > 0);
                   const signedVal =
@@ -396,42 +668,57 @@ export const TransactionsView: React.FC = () => {
                       key={tx.id}
                       className={`group transition-colors ${
                         checked
-                          ? 'bg-indigo-500/8 dark:bg-indigo-500/12'
-                          : 'hover:bg-slate-50/90 dark:hover:bg-slate-800/40'
+                          ? 'bg-[var(--accent-primary-soft)]'
+                          : 'hover:bg-[var(--bg-surface-hover)]'
                       }`}
                     >
                       <td className="py-3 pl-4 pr-2">
                         <input
                           type="checkbox"
                           checked={checked}
-                          onChange={() => toggleRow(tx.id)}
+                          onChange={() => {}}
+                          onClick={(e) => handleRowSelect(tx.id, e.shiftKey)}
                           aria-label={`Select ${tx.payee}`}
-                          className="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          className={`rounded border-[var(--border-strong)] accent-[var(--accent-primary)] cursor-pointer ${iconBtnFocus}`}
                         />
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                      <td className="py-3 px-3 whitespace-nowrap text-xs text-[var(--text-muted)] tabular-nums">
                         {tx.date}
                       </td>
-                      <td className="py-3 px-3 max-w-[300px]">
+                      <td className="py-3 px-3 max-w-[320px]">
                         <div className="flex items-center gap-2 flex-wrap">
                           {!tx.reviewed && (
                             <span
-                              className="w-2 h-2 rounded-full bg-amber-500 shrink-0"
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: 'var(--accent-warning)' }}
                               title="Unreviewed in Inbox"
+                              aria-label="Unreviewed"
                             />
                           )}
-                          <span className="font-medium text-slate-900 dark:text-slate-100 truncate">
+                          <span className="font-medium text-[var(--text-primary)] truncate">
                             {tx.payee}
                           </span>
                           {hasSplits && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-500/12 text-indigo-700 dark:text-indigo-300 text-[10px] font-semibold">
-                              <Split className="w-2.5 h-2.5" />
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums"
+                              style={{
+                                backgroundColor: 'var(--accent-primary-soft)',
+                                color: 'var(--accent-primary-text)',
+                              }}
+                            >
+                              <Split className="w-2.5 h-2.5" aria-hidden="true" />
                               Split ({tx.splits!.length})
                             </span>
                           )}
                           {tx.type === 'refund' && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-semibold">
-                              <RotateCcw className="w-2.5 h-2.5" />
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold"
+                              style={{
+                                backgroundColor: 'var(--accent-warning-soft)',
+                                color: 'var(--accent-warning)',
+                              }}
+                            >
+                              <RotateCcw className="w-2.5 h-2.5" aria-hidden="true" />
                               Refund Offset
                             </span>
                           )}
@@ -439,21 +726,22 @@ export const TransactionsView: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => openReceiptPreview(tx)}
-                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-indigo-500/15 text-slate-600 dark:text-slate-300 hover:text-indigo-600 text-[10px] font-medium cursor-pointer"
+                              aria-label={`Preview receipt for ${tx.payee}`}
+                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-[var(--border-hairline)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:text-[var(--accent-primary-text)] hover:border-[var(--border-strong)] text-[10px] font-medium cursor-pointer transition-colors ${iconBtnFocus}`}
                               title={`View receipt: ${tx.receipt.name}`}
                             >
-                              <Paperclip className="w-2.5 h-2.5" />
+                              <Paperclip className="w-2.5 h-2.5" aria-hidden="true" />
                               Receipt
                             </button>
                           )}
                         </div>
                         {(tx.notes || tx.tags.length > 0) && (
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
                             {tx.notes && <span className="truncate max-w-[200px]">{tx.notes}</span>}
                             {tx.tags.map((tg) => (
                               <span
                                 key={tg}
-                                className="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                                className="px-1.5 py-0.5 rounded border border-[var(--border-hairline)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] text-[10px] font-medium"
                               >
                                 #{tg}
                               </span>
@@ -463,7 +751,8 @@ export const TransactionsView: React.FC = () => {
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
                         {tx.type === 'transfer' ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-secondary)] text-xs font-medium">
+                            <ArrowRightLeft className="w-3 h-3" aria-hidden="true" />
                             Transfer
                           </span>
                         ) : (
@@ -471,7 +760,7 @@ export const TransactionsView: React.FC = () => {
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                             style={{
                               backgroundColor: `${cat?.color ?? '#64748b'}18`,
-                              color: cat?.color ?? '#64748b',
+                              color: cat?.color ?? 'var(--text-secondary)',
                             }}
                           >
                             <CategoryIcon icon={cat?.icon} className="w-3 h-3" />
@@ -479,7 +768,7 @@ export const TransactionsView: React.FC = () => {
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400">
+                      <td className="py-3 px-3 whitespace-nowrap text-xs text-[var(--text-secondary)]">
                         {acc?.name ?? 'Account'}
                         {destAcc ? ` → ${destAcc.name}` : ''}
                       </td>
@@ -491,52 +780,68 @@ export const TransactionsView: React.FC = () => {
                           showSign={tx.type !== 'transfer'}
                           className={`font-semibold text-sm ${
                             tx.type === 'income'
-                              ? 'text-emerald-600 dark:text-emerald-400'
+                              ? 'text-[var(--accent-positive)]'
                               : tx.type === 'refund'
-                              ? 'text-amber-600 dark:text-amber-400'
+                              ? 'text-[var(--accent-warning)]'
                               : tx.type === 'transfer'
-                              ? 'text-indigo-600 dark:text-indigo-400'
-                              : 'text-slate-900 dark:text-slate-100'
+                              ? 'text-[var(--accent-info)]'
+                              : 'text-[var(--text-primary)]'
                           }`}
                         />
                       </td>
                       <td className="py-3 pl-2 pr-4 whitespace-nowrap text-right">
-                        <div className="inline-flex items-center justify-end gap-1 opacity-75 group-hover:opacity-100 transition-opacity">
-                          {!tx.reviewed && (
-                            <button
-                              type="button"
-                              onClick={() => updateTransaction(tx.id, { reviewed: true })}
-                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-500/15 cursor-pointer"
-                              title="Mark as reviewed"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                        <div className="inline-flex items-center justify-end gap-1 opacity-85 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateTransaction(tx.id, { reviewed: !tx.reviewed })
+                            }
+                            aria-label={
+                              tx.reviewed
+                                ? `Mark ${tx.payee} as unreviewed`
+                                : `Mark ${tx.payee} as reviewed`
+                            }
+                            title={tx.reviewed ? 'Mark as unreviewed' : 'Mark as reviewed'}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${iconBtnFocus} ${
+                              tx.reviewed
+                                ? 'text-[var(--text-muted)] hover:text-[var(--accent-warning)] hover:bg-[var(--accent-warning-soft)]'
+                                : 'text-[var(--accent-positive)] bg-[var(--accent-positive-soft)] hover:brightness-95'
+                            }`}
+                          >
+                            {tx.reviewed ? (
+                              <CircleDashed className="w-3.5 h-3.5" aria-hidden="true" />
+                            ) : (
+                              <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+                            )}
+                          </button>
                           {tx.type !== 'transfer' && (
                             <button
                               type="button"
                               onClick={() => handleQuickCreateRule(tx)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-indigo-500/10 cursor-pointer"
+                              aria-label={`Create auto-categorization rule for ${tx.payee}`}
                               title="1-click Create Rule for this payee"
+                              className={`p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-primary-text)] hover:bg-[var(--accent-primary-soft)] transition-colors cursor-pointer ${iconBtnFocus}`}
                             >
-                              <Sparkles className="w-3.5 h-3.5" />
+                              <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                           )}
                           <button
                             type="button"
                             onClick={() => openQuickAdd(tx.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                            aria-label={`Edit transaction ${tx.payee}`}
                             title="Edit transaction"
+                            className={`p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer ${iconBtnFocus}`}
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
                           <button
                             type="button"
-                            onClick={() => deleteTransactions([tx.id])}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer"
+                            onClick={() => handleDeleteSingle(tx)}
+                            aria-label={`Delete transaction ${tx.payee}`}
                             title="Delete transaction"
+                            className={`p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-danger)] hover:bg-[var(--accent-danger-soft)] transition-colors cursor-pointer ${iconBtnFocus}`}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
                         </div>
                       </td>
@@ -549,22 +854,68 @@ export const TransactionsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating Bulk Action Bar */}
+      {/* Floating Sticky Multi-Row Batch Action Bar */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 max-w-[95vw] rounded-2xl bg-slate-900 dark:bg-slate-950 text-white border border-slate-700/90 shadow-2xl px-4 py-2.5 flex flex-wrap items-center gap-3">
-          <span className="text-xs font-semibold tabular-nums px-2 py-0.5 rounded-lg bg-indigo-600">
-            {selectedIds.size} selected
-          </span>
+        <div
+          role="region"
+          aria-label="Bulk transaction actions"
+          className="tactile-card-elevated vl-fade-up fixed bottom-5 left-1/2 -translate-x-1/2 z-40 max-w-[96vw] px-3.5 py-2.5 flex flex-wrap items-center gap-2"
+        >
+          {/* Count + Live Selected Net Sum */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span
+              className="text-xs font-semibold tabular-nums px-2.5 py-1 rounded-lg text-white"
+              style={{ backgroundColor: 'var(--accent-primary)' }}
+            >
+              {selectedIds.size} selected
+            </span>
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold tabular-nums border border-[var(--border-hairline)] bg-[var(--bg-subtle)]"
+              title="Net sum of selected non-transfer transactions in base currency"
+            >
+              <span className="text-[var(--text-muted)] font-medium">Net:</span>
+              <Money
+                amount={selectedNetSum}
+                currency={currency}
+                privacyMask={privacyMask}
+                showSign
+                className={
+                  selectedNetSum >= 0
+                    ? 'text-[var(--accent-positive)]'
+                    : 'text-[var(--accent-danger)]'
+                }
+              />
+            </span>
+          </div>
 
+          <span
+            className="hidden sm:inline-block h-5 w-px bg-[var(--border-hairline)]"
+            aria-hidden="true"
+          />
+
+          {/* 1. Mark Reviewed */}
           <button
             type="button"
-            onClick={handleBulkReview}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-300 text-xs font-medium cursor-pointer"
+            onClick={() => handleBulkReview(true)}
+            className={`tactile-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${iconBtnFocus}`}
+            style={{ color: 'var(--accent-positive)' }}
           >
-            <Check className="w-3.5 h-3.5" />
-            Mark Reviewed
+            <Check className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Mark Reviewed</span>
           </button>
 
+          {/* 2. Mark Unreviewed */}
+          <button
+            type="button"
+            onClick={() => handleBulkReview(false)}
+            className={`tactile-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${iconBtnFocus}`}
+            style={{ color: 'var(--accent-warning)' }}
+          >
+            <CircleDashed className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Mark Unreviewed</span>
+          </button>
+
+          {/* 3. Change Category */}
           <select
             defaultValue=""
             onChange={(e) => {
@@ -572,7 +923,7 @@ export const TransactionsView: React.FC = () => {
               e.target.value = '';
             }}
             aria-label="Bulk change category"
-            className="rounded-lg bg-slate-800 border border-slate-700 px-2.5 py-1.5 text-xs text-slate-200 outline-none"
+            className={`tactile-input px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] max-w-[160px] ${iconBtnFocus}`}
           >
             <option value="" disabled>
               Change Category...
@@ -584,33 +935,90 @@ export const TransactionsView: React.FC = () => {
             ))}
           </select>
 
+          {/* 4. Move Account */}
+          <select
+            defaultValue=""
+            onChange={(e) => {
+              handleBulkMoveAccount(e.target.value);
+              e.target.value = '';
+            }}
+            aria-label="Bulk move account"
+            className={`tactile-input px-2.5 py-1.5 text-xs font-medium text-[var(--text-primary)] max-w-[155px] ${iconBtnFocus}`}
+          >
+            <option value="" disabled>
+              Move Account...
+            </option>
+            {data.accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+
+          {/* 5. Add Tag */}
           <form onSubmit={handleBulkAddTag} className="flex items-center gap-1">
-            <Tag className="w-3.5 h-3.5 text-slate-400" />
-            <input
-              type="text"
-              value={bulkTagInput}
-              onChange={(e) => setBulkTagInput(e.target.value)}
-              placeholder="Add tag..."
-              className="w-24 rounded-lg bg-slate-800 border border-slate-700 px-2 py-1 text-xs text-white placeholder-slate-400 outline-none"
-            />
+            <div className="tactile-input flex items-center gap-1.5 px-2 py-1">
+              <Tag className="w-3 h-3 text-[var(--text-muted)] shrink-0" aria-hidden="true" />
+              <input
+                type="text"
+                value={bulkTagInput}
+                onChange={(e) => setBulkTagInput(e.target.value)}
+                placeholder="Add tag..."
+                aria-label="Add tag to selected transactions"
+                className="w-20 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+              />
+            </div>
+            {bulkTagInput.trim().length > 0 && (
+              <button
+                type="submit"
+                className={`tactile-btn-primary px-2 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${iconBtnFocus}`}
+                aria-label="Apply tag to selected transactions"
+              >
+                Add
+              </button>
+            )}
           </form>
 
-          <button
-            type="button"
-            onClick={handleBulkDelete}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/35 text-rose-300 text-xs font-medium cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            Delete
-          </button>
+          {/* 6. Inline 2-Step Bulk Delete */}
+          {confirmBulkDelete ? (
+            <div className="inline-flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handleConfirmBulkDelete}
+                className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer transition-opacity hover:opacity-90 ${iconBtnFocus}`}
+                style={{ backgroundColor: 'var(--accent-danger)' }}
+              >
+                <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                <span className="tabular-nums">Confirm Delete ({selectedIds.size})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmBulkDelete(false)}
+                className={`tactile-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${iconBtnFocus}`}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmBulkDelete(true)}
+              className={`tactile-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${iconBtnFocus}`}
+              style={{ color: 'var(--accent-danger)' }}
+            >
+              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Delete</span>
+            </button>
+          )}
 
+          {/* Clear Selection */}
           <button
             type="button"
-            onClick={() => setSelectedIds(new Set())}
-            className="p-1 text-slate-400 hover:text-white cursor-pointer"
+            onClick={clearSelection}
+            className={`p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] cursor-pointer transition-colors ${iconBtnFocus}`}
             aria-label="Clear selection"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -628,10 +1036,10 @@ export const TransactionsView: React.FC = () => {
             <img
               src={receiptModal.url}
               alt={receiptModal.receipt.name}
-              className="max-h-[65vh] w-auto rounded-xl border border-slate-200 dark:border-slate-800 object-contain"
+              className="max-h-[65vh] w-auto rounded-xl border border-[var(--border-hairline)] object-contain"
             />
           ) : (
-            <p className="text-xs text-slate-400">Loading local receipt image...</p>
+            <p className="text-xs text-[var(--text-muted)]">Loading local receipt image...</p>
           )}
         </div>
       </Modal>

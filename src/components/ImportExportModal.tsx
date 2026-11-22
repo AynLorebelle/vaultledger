@@ -15,6 +15,8 @@ import {
   Save,
   Trash2,
   Sparkles,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import {
@@ -91,6 +93,7 @@ export const ImportExportModal: React.FC = () => {
   const [rawText, setRawText] = useState('');
   const [fileName, setFileName] = useState('');
   const [showPasteBox, setShowPasteBox] = useState(false);
+  const [importDragOver, setImportDragOver] = useState(false);
 
   const [delimiter, setDelimiter] = useState<',' | ';' | '\t'>(',');
   const [skipRows, setSkipRows] = useState(1);
@@ -110,12 +113,15 @@ export const ImportExportModal: React.FC = () => {
   // Encrypted backup state
   const [encPassphrase, setEncPassphrase] = useState('');
   const [encConfirm, setEncConfirm] = useState('');
+  const [showEncPassphrase, setShowEncPassphrase] = useState(false);
   const [encrypting, setEncrypting] = useState(false);
 
   const [restoreRaw, setRestoreRaw] = useState<string | null>(null);
   const [restoreFileName, setRestoreFileName] = useState('');
   const [restoreNeedsPassword, setRestoreNeedsPassword] = useState(false);
   const [restorePassphrase, setRestorePassphrase] = useState('');
+  const [showRestorePassphrase, setShowRestorePassphrase] = useState(false);
+  const [restoreDragOver, setRestoreDragOver] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
   // Desktop storage / snapshots
@@ -128,6 +134,12 @@ export const ImportExportModal: React.FC = () => {
 
   const importFileRef = useRef<HTMLInputElement>(null);
   const restoreFileRef = useRef<HTMLInputElement>(null);
+
+  const targetAccount = useMemo(
+    () => data.accounts.find((a) => a.id === targetAccountId) ?? null,
+    [data.accounts, targetAccountId]
+  );
+  const importCurrency = targetAccount?.currency ?? currency;
 
   useEffect(() => {
     if (!open) return;
@@ -235,7 +247,11 @@ export const ImportExportModal: React.FC = () => {
       const firstRow = (matrix[0] ?? []).map((h) => h.toLowerCase());
       const dIdx = firstRow.findIndex((h) => h.includes('date'));
       const pIdx = firstRow.findIndex(
-        (h) => h.includes('desc') || h.includes('payee') || h.includes('merchant') || h.includes('name')
+        (h) =>
+          h.includes('desc') ||
+          h.includes('payee') ||
+          h.includes('merchant') ||
+          h.includes('name')
       );
       const aIdx = firstRow.findIndex((h) => h.includes('amount'));
       const nIdx = firstRow.findIndex((h) => h.includes('note') || h.includes('memo'));
@@ -250,9 +266,7 @@ export const ImportExportModal: React.FC = () => {
     }
   };
 
-  const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const readImportFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') {
@@ -260,6 +274,12 @@ export const ImportExportModal: React.FC = () => {
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    readImportFile(file);
     e.target.value = '';
   };
 
@@ -363,6 +383,7 @@ export const ImportExportModal: React.FC = () => {
       if (ok) {
         setEncPassphrase('');
         setEncConfirm('');
+        setShowEncPassphrase(false);
         showToast('Saved AES-256-GCM encrypted .vledger backup', 'success');
       }
     } catch {
@@ -372,9 +393,7 @@ export const ImportExportModal: React.FC = () => {
     }
   };
 
-  const handleRestoreFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const readRestoreFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result !== 'string') return;
@@ -393,6 +412,12 @@ export const ImportExportModal: React.FC = () => {
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleRestoreFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    readRestoreFile(file);
     e.target.value = '';
   };
 
@@ -417,6 +442,7 @@ export const ImportExportModal: React.FC = () => {
       setRestoreRaw(null);
       setRestoreFileName('');
       setRestorePassphrase('');
+      setShowRestorePassphrase(false);
       closeImportExport();
     } catch (err) {
       showToast(
@@ -446,7 +472,11 @@ export const ImportExportModal: React.FC = () => {
       maxWidthClass="max-w-4xl"
     >
       {/* Tabs Header */}
-      <div className="no-print px-5 pt-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 overflow-x-auto">
+      <div
+        role="tablist"
+        aria-label="Import, Export, and Backup sections"
+        className="no-print px-5 pt-2 border-b border-[var(--border-hairline)] flex items-center gap-1 overflow-x-auto"
+      >
         {[
           { id: 'import' as const, label: 'Import CSV / OFX', icon: Upload },
           { id: 'export' as const, label: 'Export & Report', icon: Download },
@@ -458,14 +488,16 @@ export const ImportExportModal: React.FC = () => {
             <button
               key={tab.id}
               type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => openImportExport(tab.id)}
               className={`inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold border-b-2 transition-colors whitespace-nowrap cursor-pointer ${
                 active
-                  ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'border-[var(--accent-primary)] text-[var(--accent-primary-text)]'
+                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
               }`}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-3.5 h-3.5" aria-hidden="true" />
               <span>{tab.label}</span>
             </button>
           );
@@ -475,7 +507,7 @@ export const ImportExportModal: React.FC = () => {
       <div className="p-5">
         {/* TAB 1: IMPORT CSV / OFX */}
         {activeTab === 'import' && (
-          <div className="space-y-5">
+          <div className="space-y-5" role="tabpanel" aria-label="Import CSV or OFX">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 <input
@@ -488,38 +520,48 @@ export const ImportExportModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => importFileRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
+                  className="tactile-btn-primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer"
                 >
-                  <Upload className="w-3.5 h-3.5" />
-                  Upload .CSV / .OFX / .QFX
+                  <Upload className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>Upload .CSV / .OFX / .QFX</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowPasteBox((v) => !v)}
-                  className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 cursor-pointer"
+                  className="tactile-btn px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer"
                 >
                   {showPasteBox ? 'Hide Paste Box' : 'Paste CSV'}
                 </button>
                 <button
                   type="button"
                   onClick={() => loadRawImportContent('sample-bank-statement.csv', SAMPLE_BANK_CSV)}
-                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-amber-500/12 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-semibold cursor-pointer"
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                  style={{
+                    background: 'var(--accent-warning-soft)',
+                    color: 'var(--accent-warning)',
+                  }}
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Try Sample Bank CSV
+                  <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>Try Sample Bank CSV</span>
                 </button>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">Into Account:</span>
+                <label
+                  htmlFor="import-target-account"
+                  className="text-xs font-medium text-[var(--text-muted)]"
+                >
+                  Into Account:
+                </label>
                 <select
+                  id="import-target-account"
                   value={targetAccountId}
                   onChange={(e) => setTargetAccountId(e.target.value)}
-                  className="rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-1.5 text-xs font-medium outline-none"
+                  className="tactile-input px-3 py-1.5 text-xs font-medium cursor-pointer focus:border-[var(--accent-primary)]"
                 >
                   {data.accounts.map((a) => (
                     <option key={a.id} value={a.id}>
-                      {a.name}
+                      {a.name} ({a.currency})
                     </option>
                   ))}
                 </select>
@@ -527,29 +569,39 @@ export const ImportExportModal: React.FC = () => {
             </div>
 
             {showPasteBox && (
-              <textarea
-                rows={4}
-                value={rawText}
-                onChange={(e) => loadRawImportContent('pasted.csv', e.target.value)}
-                placeholder="Paste raw CSV rows here..."
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-xs font-mono outline-none focus:border-indigo-500"
-              />
+              <div>
+                <label
+                  htmlFor="import-paste-csv"
+                  className="block text-xs font-medium text-[var(--text-secondary)] mb-1"
+                >
+                  Paste Raw CSV Content
+                </label>
+                <textarea
+                  id="import-paste-csv"
+                  rows={4}
+                  value={rawText}
+                  onChange={(e) => loadRawImportContent('pasted.csv', e.target.value)}
+                  placeholder="Paste raw CSV rows here..."
+                  className="tactile-input w-full p-3 text-xs font-mono focus:border-[var(--accent-primary)]"
+                />
+              </div>
             )}
 
             {/* CSV Column Mapper + Presets */}
             {rawText && sourceFormat === 'csv' && csvHeaders.length > 0 && (
-              <div className="rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+              <div className="tactile-well p-4 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  <div className="text-xs font-semibold text-[var(--text-primary)]">
                     CSV Column Mapper {fileName ? `· ${fileName}` : ''}
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {data.importPresets.length > 0 && (
                       <div className="flex items-center gap-1">
                         <select
+                          aria-label="Load saved bank import preset"
                           value={selectedPresetId}
                           onChange={(e) => applyPreset(e.target.value)}
-                          className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1 text-xs outline-none"
+                          className="tactile-input px-2 py-1 text-xs cursor-pointer"
                         >
                           <option value="">Load Preset...</option>
                           {data.importPresets.map((p) => (
@@ -565,38 +617,43 @@ export const ImportExportModal: React.FC = () => {
                               deleteImportPreset(selectedPresetId);
                               setSelectedPresetId('');
                             }}
-                            className="p-1 text-slate-400 hover:text-rose-500 cursor-pointer"
+                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-danger)] hover:bg-[var(--accent-danger-soft)] transition-colors cursor-pointer"
+                            aria-label="Delete selected preset"
                             title="Delete selected preset"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
                         )}
                       </div>
                     )}
                     <input
                       type="text"
+                      aria-label="New bank import preset name"
                       value={presetName}
                       onChange={(e) => setPresetName(e.target.value)}
                       placeholder="New preset name..."
-                      className="w-32 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1 text-xs outline-none"
+                      className="tactile-input w-36 px-2.5 py-1 text-xs"
                     />
                     <button
                       type="button"
                       onClick={handleSavePreset}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-xs font-medium cursor-pointer"
+                      className="tactile-btn-primary inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer"
                     >
-                      <Save className="w-3 h-3" /> Save
+                      <Save className="w-3 h-3" aria-hidden="true" />
+                      <span>Save</span>
                     </button>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
                   <label className="space-y-1">
-                    <span className="text-[11px] text-slate-500">Date Column</span>
+                    <span className="block text-[11px] font-medium text-[var(--text-secondary)]">
+                      Date Column
+                    </span>
                     <select
                       value={dateColumn}
                       onChange={(e) => setDateColumn(Number(e.target.value))}
-                      className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1.5"
+                      className="tactile-input w-full px-2 py-1.5 cursor-pointer"
                     >
                       {csvHeaders.map((h, i) => (
                         <option key={i} value={i}>
@@ -606,11 +663,13 @@ export const ImportExportModal: React.FC = () => {
                     </select>
                   </label>
                   <label className="space-y-1">
-                    <span className="text-[11px] text-slate-500">Payee Column</span>
+                    <span className="block text-[11px] font-medium text-[var(--text-secondary)]">
+                      Payee Column
+                    </span>
                     <select
                       value={payeeColumn}
                       onChange={(e) => setPayeeColumn(Number(e.target.value))}
-                      className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1.5"
+                      className="tactile-input w-full px-2 py-1.5 cursor-pointer"
                     >
                       {csvHeaders.map((h, i) => (
                         <option key={i} value={i}>
@@ -621,11 +680,13 @@ export const ImportExportModal: React.FC = () => {
                   </label>
                   {!useSplitDebitCredit ? (
                     <label className="space-y-1">
-                      <span className="text-[11px] text-slate-500">Amount Column</span>
+                      <span className="block text-[11px] font-medium text-[var(--text-secondary)]">
+                        Amount Column
+                      </span>
                       <select
                         value={amountColumn}
                         onChange={(e) => setAmountColumn(Number(e.target.value))}
-                        className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1.5"
+                        className="tactile-input w-full px-2 py-1.5 cursor-pointer"
                       >
                         {csvHeaders.map((h, i) => (
                           <option key={i} value={i}>
@@ -637,11 +698,13 @@ export const ImportExportModal: React.FC = () => {
                   ) : (
                     <>
                       <label className="space-y-1">
-                        <span className="text-[11px] text-slate-500">Debit Column</span>
+                        <span className="block text-[11px] font-medium text-[var(--text-secondary)]">
+                          Debit Column
+                        </span>
                         <select
                           value={debitColumn}
                           onChange={(e) => setDebitColumn(Number(e.target.value))}
-                          className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1.5"
+                          className="tactile-input w-full px-2 py-1.5 cursor-pointer"
                         >
                           {csvHeaders.map((h, i) => (
                             <option key={i} value={i}>
@@ -651,11 +714,13 @@ export const ImportExportModal: React.FC = () => {
                         </select>
                       </label>
                       <label className="space-y-1">
-                        <span className="text-[11px] text-slate-500">Credit Column</span>
+                        <span className="block text-[11px] font-medium text-[var(--text-secondary)]">
+                          Credit Column
+                        </span>
                         <select
                           value={creditColumn}
                           onChange={(e) => setCreditColumn(Number(e.target.value))}
-                          className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1.5"
+                          className="tactile-input w-full px-2 py-1.5 cursor-pointer"
                         >
                           {csvHeaders.map((h, i) => (
                             <option key={i} value={i}>
@@ -667,11 +732,13 @@ export const ImportExportModal: React.FC = () => {
                     </>
                   )}
                   <label className="space-y-1">
-                    <span className="text-[11px] text-slate-500">Notes (Optional)</span>
+                    <span className="block text-[11px] font-medium text-[var(--text-secondary)]">
+                      Notes (Optional)
+                    </span>
                     <select
                       value={notesColumn}
                       onChange={(e) => setNotesColumn(Number(e.target.value))}
-                      className="w-full rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1.5"
+                      className="tactile-input w-full px-2 py-1.5 cursor-pointer"
                     >
                       <option value={-1}>None</option>
                       {csvHeaders.map((h, i) => (
@@ -683,7 +750,19 @@ export const ImportExportModal: React.FC = () => {
                   </label>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-300 pt-1">
+                <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--text-secondary)] pt-1">
+                  <label className="inline-flex items-center gap-1.5">
+                    <span>Delimiter:</span>
+                    <select
+                      value={delimiter}
+                      onChange={(e) => setDelimiter(e.target.value as ',' | ';' | '\t')}
+                      className="tactile-input px-2 py-0.5 text-xs cursor-pointer"
+                    >
+                      <option value=",">Comma (,)</option>
+                      <option value=";">Semicolon (;)</option>
+                      <option value={'\t'}>Tab</option>
+                    </select>
+                  </label>
                   <label className="inline-flex items-center gap-1.5">
                     <span>Skip rows:</span>
                     <input
@@ -692,7 +771,7 @@ export const ImportExportModal: React.FC = () => {
                       max={10}
                       value={skipRows}
                       onChange={(e) => setSkipRows(Math.max(0, Number(e.target.value) || 0))}
-                      className="w-12 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-1.5 py-0.5 text-xs tabular-nums"
+                      className="tactile-input w-14 px-2 py-0.5 text-xs tabular-nums"
                     />
                   </label>
                   <label className="inline-flex items-center gap-1.5 cursor-pointer">
@@ -700,6 +779,7 @@ export const ImportExportModal: React.FC = () => {
                       type="checkbox"
                       checked={useSplitDebitCredit}
                       onChange={(e) => setUseSplitDebitCredit(e.target.checked)}
+                      className="rounded accent-[var(--accent-primary)]"
                     />
                     <span>Separate Debit/Credit cols</span>
                   </label>
@@ -708,6 +788,7 @@ export const ImportExportModal: React.FC = () => {
                       type="checkbox"
                       checked={invertAmount}
                       onChange={(e) => setInvertAmount(e.target.checked)}
+                      className="rounded accent-[var(--accent-primary)]"
                     />
                     <span>Invert Sign (+/-)</span>
                   </label>
@@ -715,12 +796,12 @@ export const ImportExportModal: React.FC = () => {
               </div>
             )}
 
-            {/* Preview Table */}
+            {/* Preview Table OR Drag-and-Drop Zone */}
             {previewRows.length > 0 ? (
               <div className="space-y-3">
-                <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="max-h-72 overflow-y-auto rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)]">
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="sticky top-0 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-[11px] text-slate-500">
+                    <thead className="sticky top-0 bg-[var(--bg-subtle)] border-b border-[var(--border-hairline)] text-[11px] font-semibold text-[var(--text-secondary)]">
                       <tr>
                         <th className="py-2 px-3 w-8">Inc</th>
                         <th className="py-2 px-2">Date</th>
@@ -729,17 +810,21 @@ export const ImportExportModal: React.FC = () => {
                         <th className="py-2 px-3 text-right">Amount</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
+                    <tbody className="divide-y divide-[var(--border-hairline)]">
                       {previewRows.map((row, idx) => (
                         <tr
                           key={`${row.importHash}-${idx}`}
-                          className={
-                            row.isDuplicate ? 'bg-amber-500/8' : row.selected ? '' : 'opacity-50'
+                          style={
+                            row.isDuplicate
+                              ? { background: 'var(--accent-warning-soft)' }
+                              : undefined
                           }
+                          className={row.selected ? '' : 'opacity-55'}
                         >
                           <td className="py-2 px-3">
                             <input
                               type="checkbox"
+                              aria-label={`Include row ${idx + 1}: ${row.payee}`}
                               checked={row.selected}
                               onChange={() =>
                                 setPreviewRows((prev) =>
@@ -748,24 +833,34 @@ export const ImportExportModal: React.FC = () => {
                                   )
                                 )
                               }
+                              className="rounded accent-[var(--accent-primary)] cursor-pointer"
                             />
                           </td>
-                          <td className="py-2 px-2 tabular-nums text-slate-500">{row.date}</td>
+                          <td className="py-2 px-2 tabular-nums text-[var(--text-muted)]">
+                            {row.date}
+                          </td>
                           <td className="py-2 px-2">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-medium text-slate-900 dark:text-slate-100">
+                              <span className="font-medium text-[var(--text-primary)]">
                                 {row.payee}
                               </span>
                               {row.isDuplicate && (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-semibold">
-                                  <AlertTriangle className="w-2.5 h-2.5" />
-                                  Duplicate Detected
+                                <span
+                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                                  style={{
+                                    background: 'var(--accent-warning-soft)',
+                                    color: 'var(--accent-warning)',
+                                  }}
+                                >
+                                  <AlertTriangle className="w-2.5 h-2.5" aria-hidden="true" />
+                                  <span>Duplicate Detected</span>
                                 </span>
                               )}
                             </div>
                           </td>
                           <td className="py-2 px-2">
                             <select
+                              aria-label={`Category for ${row.payee}`}
                               value={row.categoryId}
                               onChange={(e) =>
                                 setPreviewRows((prev) =>
@@ -774,7 +869,7 @@ export const ImportExportModal: React.FC = () => {
                                   )
                                 )
                               }
-                              className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1 text-[11px]"
+                              className="tactile-input px-2 py-1 text-[11px] cursor-pointer"
                             >
                               {data.categories.map((c) => (
                                 <option key={c.id} value={c.id}>
@@ -783,18 +878,18 @@ export const ImportExportModal: React.FC = () => {
                               ))}
                             </select>
                           </td>
-                          <td className="py-2 px-3 text-right font-semibold">
+                          <td className="py-2 px-3 text-right font-semibold tabular-nums">
                             <Money
                               amount={row.type === 'expense' ? -row.amount : row.amount}
-                              currency={currency}
+                              currency={importCurrency}
                               privacyMask={privacyMask}
                               showSign
                               className={
                                 row.type === 'income'
-                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  ? 'text-[var(--accent-positive)]'
                                   : row.type === 'refund'
-                                  ? 'text-amber-600 dark:text-amber-400'
-                                  : 'text-slate-900 dark:text-slate-100'
+                                    ? 'text-[var(--accent-warning)]'
+                                    : 'text-[var(--text-primary)]'
                               }
                             />
                           </td>
@@ -805,10 +900,10 @@ export const ImportExportModal: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    <strong className="text-slate-900 dark:text-white">{selectedImportCount}</strong>{' '}
+                  <div className="text-xs text-[var(--text-muted)] tabular-nums">
+                    <strong className="text-[var(--text-primary)]">{selectedImportCount}</strong>{' '}
                     selected to import ·{' '}
-                    <strong className="text-amber-600 dark:text-amber-400">
+                    <strong style={{ color: 'var(--accent-warning)' }}>
                       {duplicateImportCount}
                     </strong>{' '}
                     duplicates auto-unchecked
@@ -817,16 +912,57 @@ export const ImportExportModal: React.FC = () => {
                     type="button"
                     disabled={selectedImportCount === 0}
                     onClick={handleCommitImport}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-semibold cursor-pointer"
+                    className="tactile-btn-primary inline-flex items-center gap-1.5 px-4 py-2 rounded-xl disabled:opacity-40 text-xs font-semibold cursor-pointer"
                   >
-                    <CheckCircle2 className="w-4 h-4" />
-                    Import {selectedImportCount} Selected
+                    <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+                    <span>Import {selectedImportCount} Selected</span>
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center text-xs text-slate-400">
-                Upload a bank CSV/OFX/QFX export or click &ldquo;Try Sample Bank CSV&rdquo; to preview smart auto-categorization &amp; duplicate protection.
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label="Drop a bank CSV, OFX, or QFX file here or click to upload"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setImportDragOver(true);
+                }}
+                onDragLeave={() => setImportDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setImportDragOver(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) readImportFile(file);
+                }}
+                onClick={() => importFileRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    importFileRef.current?.click();
+                  }
+                }}
+                className="rounded-xl border border-dashed p-8 text-center text-xs transition-colors cursor-pointer space-y-2"
+                style={
+                  importDragOver
+                    ? {
+                        borderColor: 'var(--accent-primary)',
+                        background: 'var(--accent-primary-soft)',
+                        color: 'var(--text-primary)',
+                      }
+                    : {
+                        borderColor: 'var(--border-strong)',
+                        background: 'var(--bg-subtle)',
+                        color: 'var(--text-muted)',
+                      }
+                }
+              >
+                <Upload className="w-5 h-5 mx-auto text-[var(--text-muted)]" aria-hidden="true" />
+                <p>
+                  Drag &amp; drop a bank <strong>.CSV / .OFX / .QFX</strong> export here, click to
+                  upload, or use &ldquo;Try Sample Bank CSV&rdquo; to preview auto-categorization
+                  &amp; duplicate protection.
+                </p>
               </div>
             )}
           </div>
@@ -834,60 +970,89 @@ export const ImportExportModal: React.FC = () => {
 
         {/* TAB 2: EXPORT & PRINTABLE REPORT */}
         {activeTab === 'export' && (
-          <div className="space-y-5">
+          <div className="space-y-5" role="tabpanel" aria-label="Export and Printable Report">
             <div className="no-print grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="rounded-2xl p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex flex-col justify-between gap-4">
+              <div className="tactile-well p-4 flex flex-col justify-between gap-4">
                 <div>
-                  <FileSpreadsheet className="w-6 h-6 text-emerald-500 mb-2" />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center mb-2.5"
+                    style={{
+                      background: 'var(--accent-positive-soft)',
+                      color: 'var(--accent-positive)',
+                    }}
+                  >
+                    <FileSpreadsheet className="w-5 h-5" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
                     Transactions CSV
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed">
                     Clean spreadsheet with dates, signed amounts, splits, categories, and tags.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={handleExportCsv}
-                  className="w-full py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold cursor-pointer"
+                  className="tactile-btn-primary w-full py-2 rounded-xl text-xs font-semibold tabular-nums cursor-pointer"
                 >
                   Download CSV ({data.transactions.length} rows)
                 </button>
               </div>
 
-              <div className="rounded-2xl p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex flex-col justify-between gap-4">
+              <div className="tactile-well p-4 flex flex-col justify-between gap-4">
                 <div>
-                  <FileJson className="w-6 h-6 text-indigo-500 mb-2" />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center mb-2.5"
+                    style={{
+                      background: 'var(--accent-info-soft)',
+                      color: 'var(--accent-info)',
+                    }}
+                  >
+                    <FileJson className="w-5 h-5" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
                     Full Vault JSON
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Unencrypted complete export including accounts, budgets, rules, and goals.
+                  <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed">
+                    Unencrypted complete export including accounts, budgets, rules, FX rates, and
+                    goals.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={handleExportJson}
-                  className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
+                  className="tactile-btn w-full py-2 rounded-xl text-xs font-semibold cursor-pointer"
                 >
                   Download JSON
                 </button>
               </div>
 
-              <div className="rounded-2xl p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex flex-col justify-between gap-4">
+              <div className="tactile-well p-4 flex flex-col justify-between gap-4">
                 <div>
-                  <Printer className="w-6 h-6 text-amber-500 mb-2" />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center mb-2.5"
+                    style={{
+                      background: 'var(--accent-warning-soft)',
+                      color: 'var(--accent-warning)',
+                    }}
+                  >
+                    <Printer className="w-5 h-5" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
                     Printable Report
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed">
                     Print or Save as PDF using your OS print dialog for clean paper records.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="w-full py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 text-xs font-semibold cursor-pointer"
+                  className="w-full py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                  style={{
+                    background: 'var(--accent-warning-soft)',
+                    color: 'var(--accent-warning)',
+                  }}
                 >
                   Print / Save PDF
                 </button>
@@ -895,39 +1060,64 @@ export const ImportExportModal: React.FC = () => {
             </div>
 
             {/* Printable Monthly Financial Summary Sheet */}
-            <div className="rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div className="tactile-card p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-[var(--border-hairline)] pb-3">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">
                     VaultLedger Monthly Financial Report
                   </h3>
-                  <p className="text-xs text-slate-400">Generated locally on {todayIso()}</p>
+                  <p className="text-xs text-[var(--text-muted)]">
+                    Generated locally on {todayIso()}
+                  </p>
                 </div>
-                <span className="text-xs font-mono text-slate-400">{currency}</span>
+                <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-xs font-mono font-semibold text-[var(--text-secondary)]">
+                  {currency}
+                </span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div>
-                  <div className="text-slate-400">Net Worth</div>
-                  <div className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
-                    <Money amount={reportKpis.totalNetWorth} currency={currency} privacyMask={privacyMask} />
+                <div className="tactile-well p-3">
+                  <div className="text-[var(--text-muted)]">Net Worth</div>
+                  <div className="text-base font-bold text-[var(--text-primary)] mt-0.5 tabular-nums">
+                    <Money
+                      amount={reportKpis.totalNetWorth}
+                      currency={currency}
+                      privacyMask={privacyMask}
+                    />
                   </div>
                 </div>
-                <div>
-                  <div className="text-slate-400">Monthly Income</div>
-                  <div className="text-base font-bold text-emerald-600 mt-0.5">
-                    <Money amount={reportKpis.periodIncome} currency={currency} privacyMask={privacyMask} />
+                <div className="tactile-well p-3">
+                  <div className="text-[var(--text-muted)]">Monthly Income</div>
+                  <div
+                    className="text-base font-bold mt-0.5 tabular-nums"
+                    style={{ color: 'var(--accent-positive)' }}
+                  >
+                    <Money
+                      amount={reportKpis.periodIncome}
+                      currency={currency}
+                      privacyMask={privacyMask}
+                    />
                   </div>
                 </div>
-                <div>
-                  <div className="text-slate-400">Monthly Expenses</div>
-                  <div className="text-base font-bold text-rose-600 mt-0.5">
-                    <Money amount={reportKpis.periodExpenses} currency={currency} privacyMask={privacyMask} />
+                <div className="tactile-well p-3">
+                  <div className="text-[var(--text-muted)]">Monthly Expenses</div>
+                  <div
+                    className="text-base font-bold mt-0.5 tabular-nums"
+                    style={{ color: 'var(--accent-danger)' }}
+                  >
+                    <Money
+                      amount={reportKpis.periodExpenses}
+                      currency={currency}
+                      privacyMask={privacyMask}
+                    />
                   </div>
                 </div>
-                <div>
-                  <div className="text-slate-400">Savings Rate</div>
-                  <div className="text-base font-bold text-indigo-600 dark:text-indigo-400 mt-0.5 tabular-nums">
+                <div className="tactile-well p-3">
+                  <div className="text-[var(--text-muted)]">Savings Rate</div>
+                  <div
+                    className="text-base font-bold mt-0.5 tabular-nums"
+                    style={{ color: 'var(--accent-primary-text)' }}
+                  >
                     {reportKpis.savingsRate.toFixed(1)}%
                   </div>
                 </div>
@@ -935,21 +1125,23 @@ export const ImportExportModal: React.FC = () => {
 
               {reportTopCats.length > 0 && (
                 <div className="pt-2">
-                  <div className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">
+                  <div className="text-xs font-semibold text-[var(--text-secondary)] mb-2">
                     Top Monthly Spending Categories
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     {reportTopCats.map((c) => (
                       <div
                         key={c.categoryId}
-                        className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-900"
+                        className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-hairline)]"
                       >
-                        <span>{c.categoryName}</span>
+                        <span className="text-[var(--text-primary)] font-medium">
+                          {c.categoryName}
+                        </span>
                         <Money
                           amount={c.spent}
                           currency={currency}
                           privacyMask={privacyMask}
-                          className="font-semibold"
+                          className="font-semibold text-[var(--text-primary)] tabular-nums"
                         />
                       </div>
                     ))}
@@ -962,42 +1154,91 @@ export const ImportExportModal: React.FC = () => {
 
         {/* TAB 3: ENCRYPTED VAULT BACKUP */}
         {activeTab === 'backup' && (
-          <div className="space-y-5">
+          <div className="space-y-5" role="tabpanel" aria-label="Encrypted Vault Backup">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Create AES-256-GCM Backup */}
               <form
                 onSubmit={handleEncryptedBackup}
-                className="rounded-2xl p-5 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-3"
+                className="tactile-well p-5 space-y-3"
               >
                 <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-emerald-500" />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{
+                      background: 'var(--accent-positive-soft)',
+                      color: 'var(--accent-positive)',
+                    }}
+                  >
+                    <Lock className="w-4 h-4" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
                     Create Encrypted .vledger Backup
                   </h3>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Sealed with PBKDF2-SHA256 (120k iterations) + AES-256-GCM authenticated encryption.
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                  Sealed with PBKDF2-SHA256 (120k iterations) + AES-256-GCM authenticated
+                  encryption.
                 </p>
-                <input
-                  type="password"
-                  value={encPassphrase}
-                  onChange={(e) => setEncPassphrase(e.target.value)}
-                  placeholder="Backup passphrase (min 6 chars)"
-                  required
-                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 text-xs outline-none focus:border-indigo-500"
-                />
-                <input
-                  type="password"
-                  value={encConfirm}
-                  onChange={(e) => setEncConfirm(e.target.value)}
-                  placeholder="Confirm passphrase"
-                  required
-                  className="w-full rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 text-xs outline-none focus:border-indigo-500"
-                />
+                <div className="space-y-2.5">
+                  <div>
+                    <label
+                      htmlFor="backup-enc-passphrase"
+                      className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1"
+                    >
+                      Backup Passphrase
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="backup-enc-passphrase"
+                        type={showEncPassphrase ? 'text' : 'password'}
+                        value={encPassphrase}
+                        onChange={(e) => setEncPassphrase(e.target.value)}
+                        placeholder="Min 6 characters"
+                        required
+                        className="tactile-input w-full pl-3 pr-9 py-2 text-xs focus:border-[var(--accent-primary)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowEncPassphrase((v) => !v)}
+                        aria-label={
+                          showEncPassphrase ? 'Hide backup passphrase' : 'Show backup passphrase'
+                        }
+                        title={
+                          showEncPassphrase ? 'Hide backup passphrase' : 'Show backup passphrase'
+                        }
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] cursor-pointer"
+                      >
+                        {showEncPassphrase ? (
+                          <EyeOff className="w-3.5 h-3.5" aria-hidden="true" />
+                        ) : (
+                          <Eye className="w-3.5 h-3.5" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="backup-enc-confirm"
+                      className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1"
+                    >
+                      Confirm Passphrase
+                    </label>
+                    <input
+                      id="backup-enc-confirm"
+                      type={showEncPassphrase ? 'text' : 'password'}
+                      value={encConfirm}
+                      onChange={(e) => setEncConfirm(e.target.value)}
+                      placeholder="Re-enter passphrase"
+                      required
+                      className="tactile-input w-full px-3 py-2 text-xs focus:border-[var(--accent-primary)]"
+                    />
+                  </div>
+                </div>
                 <button
                   type="submit"
                   disabled={encrypting || !encPassphrase}
-                  className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-semibold cursor-pointer"
+                  className="tactile-btn-primary w-full py-2.5 rounded-xl disabled:opacity-40 text-xs font-semibold cursor-pointer"
                 >
                   {encrypting ? 'Encrypting...' : 'Encrypt & Download .vledger'}
                 </button>
@@ -1006,15 +1247,23 @@ export const ImportExportModal: React.FC = () => {
               {/* Restore Backup */}
               <form
                 onSubmit={handleExecuteRestore}
-                className="rounded-2xl p-5 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-3"
+                className="tactile-well p-5 space-y-3"
               >
                 <div className="flex items-center gap-2">
-                  <Unlock className="w-4 h-4 text-indigo-500" />
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{
+                      background: 'var(--accent-info-soft)',
+                      color: 'var(--accent-info)',
+                    }}
+                  >
+                    <Unlock className="w-4 h-4" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
                     Restore from .vledger or .json
                   </h3>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-[var(--text-muted)] leading-relaxed">
                   Move your vault seamlessly between Web and Desktop or recover from an archive.
                 </p>
 
@@ -1025,29 +1274,97 @@ export const ImportExportModal: React.FC = () => {
                   onChange={handleRestoreFileSelected}
                   className="hidden"
                 />
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Choose or drop a .vledger or .json backup file"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setRestoreDragOver(true);
+                  }}
+                  onDragLeave={() => setRestoreDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setRestoreDragOver(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) readRestoreFile(file);
+                  }}
                   onClick={() => restoreFileRef.current?.click()}
-                  className="w-full py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      restoreFileRef.current?.click();
+                    }
+                  }}
+                  className="w-full py-3 px-3 rounded-xl border border-dashed text-center text-xs font-semibold transition-colors cursor-pointer"
+                  style={
+                    restoreDragOver
+                      ? {
+                          borderColor: 'var(--accent-primary)',
+                          background: 'var(--accent-primary-soft)',
+                          color: 'var(--text-primary)',
+                        }
+                      : {
+                          borderColor: 'var(--border-strong)',
+                          background: 'var(--bg-surface)',
+                          color: 'var(--text-primary)',
+                        }
+                  }
                 >
-                  {restoreFileName ? `Selected: ${restoreFileName}` : 'Choose .vledger or .json File'}
-                </button>
+                  {restoreFileName
+                    ? `Selected: ${restoreFileName}`
+                    : 'Choose or Drop .vledger / .json File'}
+                </div>
 
                 {restoreNeedsPassword && (
-                  <input
-                    type="password"
-                    value={restorePassphrase}
-                    onChange={(e) => setRestorePassphrase(e.target.value)}
-                    placeholder="Enter backup decryption passphrase"
-                    required
-                    className="w-full rounded-xl bg-white dark:bg-slate-900 border border-indigo-500/50 px-3 py-2 text-xs outline-none"
-                  />
+                  <div>
+                    <label
+                      htmlFor="backup-restore-passphrase"
+                      className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1"
+                    >
+                      Decryption Passphrase
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="backup-restore-passphrase"
+                        type={showRestorePassphrase ? 'text' : 'password'}
+                        value={restorePassphrase}
+                        onChange={(e) => setRestorePassphrase(e.target.value)}
+                        placeholder="Enter backup decryption passphrase"
+                        required
+                        className="tactile-input w-full pl-3 pr-9 py-2 text-xs focus:border-[var(--accent-primary)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRestorePassphrase((v) => !v)}
+                        aria-label={
+                          showRestorePassphrase
+                            ? 'Hide decryption passphrase'
+                            : 'Show decryption passphrase'
+                        }
+                        title={
+                          showRestorePassphrase
+                            ? 'Hide decryption passphrase'
+                            : 'Show decryption passphrase'
+                        }
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] cursor-pointer"
+                      >
+                        {showRestorePassphrase ? (
+                          <EyeOff className="w-3.5 h-3.5" aria-hidden="true" />
+                        ) : (
+                          <Eye className="w-3.5 h-3.5" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 <button
                   type="submit"
-                  disabled={!restoreRaw || restoring || (restoreNeedsPassword && !restorePassphrase)}
-                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-semibold cursor-pointer"
+                  disabled={
+                    !restoreRaw || restoring || (restoreNeedsPassword && !restorePassphrase)
+                  }
+                  className="tactile-btn-primary w-full py-2.5 rounded-xl disabled:opacity-40 text-xs font-semibold cursor-pointer"
                 >
                   {restoring ? 'Restoring...' : 'Restore Vault'}
                 </button>
@@ -1056,14 +1373,14 @@ export const ImportExportModal: React.FC = () => {
 
             {/* Desktop Storage & Rolling Auto-Backups */}
             {isDesktop && (
-              <div className="rounded-2xl p-4 bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="tactile-card p-4 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                    <h4 className="text-xs font-bold text-[var(--text-primary)]">
                       Desktop Local Vault &amp; Rolling Snapshots
                     </h4>
                     {storageInfo && (
-                      <p className="text-[11px] font-mono text-slate-400 mt-0.5 truncate max-w-lg">
+                      <p className="text-[11px] font-mono text-[var(--text-muted)] mt-0.5 truncate max-w-lg">
                         {storageInfo.vaultPath}
                       </p>
                     )}
@@ -1072,9 +1389,10 @@ export const ImportExportModal: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => window.vaultDesktop?.openDataFolder()}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-medium cursor-pointer"
+                      className="tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
                     >
-                      <FolderOpen className="w-3.5 h-3.5" /> Open Folder
+                      <FolderOpen className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Open Folder</span>
                     </button>
                     <button
                       type="button"
@@ -1082,24 +1400,28 @@ export const ImportExportModal: React.FC = () => {
                         const res = await createManualBackup();
                         if (res.ok) {
                           showToast(`Snapshot created: ${res.fileName ?? 'backup'}`, 'success');
-                          window.vaultDesktop?.listBackups().then(setDesktopBackups).catch(() => {});
+                          window.vaultDesktop
+                            ?.listBackups()
+                            .then(setDesktopBackups)
+                            .catch(() => {});
                         }
                       }}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium cursor-pointer"
+                      className="tactile-btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
                     >
-                      <RefreshCw className="w-3.5 h-3.5" /> Create Snapshot
+                      <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Create Snapshot</span>
                     </button>
                   </div>
                 </div>
 
                 {desktopBackups.length > 0 && (
-                  <div className="max-h-32 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                  <div className="max-h-32 overflow-y-auto divide-y divide-[var(--border-hairline)] text-xs">
                     {desktopBackups.slice(0, 8).map((b) => (
-                      <div key={b.fileName} className="py-1.5 flex items-center justify-between">
-                        <span className="font-mono text-slate-700 dark:text-slate-300 truncate">
+                      <div key={b.fileName} className="py-1.5 flex items-center justify-between gap-3">
+                        <span className="font-mono text-[var(--text-secondary)] truncate">
                           {b.fileName}
                         </span>
-                        <span className="text-slate-400 tabular-nums shrink-0">
+                        <span className="text-[var(--text-muted)] tabular-nums shrink-0">
                           {(b.sizeBytes / 1024).toFixed(1)} KB
                         </span>
                       </div>

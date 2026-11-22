@@ -4,29 +4,25 @@ import type {
   Category,
   CategoryRule,
   CurrencyCode,
+  ForecastMilestone,
   RecurringBill,
   SavingsGoal,
   Transaction,
   VaultData,
   VaultSettings,
 } from '../types/finance';
+import { DEFAULT_USD_RATES } from './currency';
 
 const DEFAULT_EXCHANGE_RATES: Record<CurrencyCode, number> = {
-  USD: 1,
-  EUR: 0.92,
-  GBP: 0.79,
-  PHP: 56.5,
-  JPY: 152.0,
-  CAD: 1.38,
-  AUD: 1.53,
-  SGD: 1.34,
+  ...DEFAULT_USD_RATES,
 };
 
-function createDefaultSettings(isDemoData: boolean): VaultSettings {
+function createDefaultSettings(isDemoData: boolean, nowIso: string): VaultSettings {
   return {
     baseCurrency: 'USD',
     exchangeRates: { ...DEFAULT_EXCHANGE_RATES },
-    theme: 'dark',
+    exchangeRatesUpdatedAt: nowIso,
+    theme: 'light',
     privacyMask: false,
     passcodeHash: null,
     passcodeSalt: null,
@@ -300,7 +296,8 @@ export function createEmptyVault(): VaultData {
     savingsGoals: [],
     rules: [],
     importPresets: [],
-    settings: createDefaultSettings(false),
+    forecastMilestones: [],
+    settings: createDefaultSettings(false, now),
   };
 }
 
@@ -1055,7 +1052,26 @@ export function createSampleVault(referenceDate: Date = new Date()): VaultData {
     },
   ];
 
-  const settings = createDefaultSettings(true);
+  const forecastMilestones: ForecastMilestone[] = [
+    {
+      id: 'ms-bonus',
+      label: 'Year-End Bonus',
+      monthOffset: 6,
+      amount: 3500,
+      recurring: false,
+      enabled: true,
+    },
+    {
+      id: 'ms-trip',
+      label: 'Autumn Travel Fund',
+      monthOffset: 10,
+      amount: -2400,
+      recurring: false,
+      enabled: true,
+    },
+  ];
+
+  const settings = createDefaultSettings(true, nowIso);
   settings.budgetRolloverAdjustments = {
     cat_groceries: 45,
     cat_travel: 120,
@@ -1071,6 +1087,7 @@ export function createSampleVault(referenceDate: Date = new Date()): VaultData {
     savingsGoals,
     rules,
     importPresets,
+    forecastMilestones,
     settings,
   };
 }

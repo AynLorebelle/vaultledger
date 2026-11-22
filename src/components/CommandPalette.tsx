@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search,
   LayoutDashboard,
@@ -6,6 +6,7 @@ import {
   PieChart,
   CalendarClock,
   Target,
+  LineChart,
   Landmark,
   SlidersHorizontal,
   MonitorDown,
@@ -19,9 +20,16 @@ import {
   Redo2,
   CornerDownLeft,
   Tag,
+  MessageSquareText,
+  X,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
+import { isLikelyVaultQuestion } from '../core/askVault';
+import type { VaultAnswerDrillAction } from '../types/finance';
+import { AskVaultPanel } from './AskVaultPanel';
 import { formatMoney } from './ui';
+
+type PaletteMode = 'all' | 'ask';
 
 interface PaletteItem {
   id: string;
@@ -40,6 +48,8 @@ export const CommandPalette: React.FC = () => {
   const data = useFinanceStore((s) => s.data);
   const setActiveNav = useFinanceStore((s) => s.setActiveNav);
   const drillDownCategory = useFinanceStore((s) => s.drillDownCategory);
+  const drillDownDate = useFinanceStore((s) => s.drillDownDate);
+  const drillDownSearch = useFinanceStore((s) => s.drillDownSearch);
   const openQuickAdd = useFinanceStore((s) => s.openQuickAdd);
   const openImportExport = useFinanceStore((s) => s.openImportExport);
   const togglePrivacyMask = useFinanceStore((s) => s.togglePrivacyMask);
@@ -49,19 +59,53 @@ export const CommandPalette: React.FC = () => {
   const undo = useFinanceStore((s) => s.undo);
   const redo = useFinanceStore((s) => s.redo);
 
+  const [mode, setMode] = useState<PaletteMode>('all');
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const currency = data.settings.baseCurrency;
   const privacyMask = data.settings.privacyMask;
   const isDark = data.settings.theme === 'dark';
 
+  const likelyQuestion = useMemo(() => isLikelyVaultQuestion(query), [query]);
+  const showAskVault = mode === 'ask' || likelyQuestion;
+
   useEffect(() => {
     if (open) {
+      setMode('all');
       setQuery('');
       setSelectedIndex(0);
     }
   }, [open]);
+
+  const handleDrillDown = useCallback(
+    (action: VaultAnswerDrillAction) => {
+      if (action.categoryId) {
+        drillDownCategory(action.categoryId);
+      } else if (action.searchQuery) {
+        drillDownSearch(action.searchQuery);
+      } else if (action.date) {
+        drillDownDate(action.date);
+      } else {
+        setActiveNav(action.nav);
+      }
+      setOpen(false);
+    },
+    [drillDownCategory, drillDownSearch, drillDownDate, setActiveNav, setOpen]
+  );
+
+  const handleModeChange = (nextMode: PaletteMode) => {
+    setMode(nextMode);
+    setSelectedIndex(0);
+    inputRef.current?.focus();
+  };
+
+  const handleClearQuery = () => {
+    setQuery('');
+    setSelectedIndex(0);
+    inputRef.current?.focus();
+  };
 
   const allItems = useMemo<PaletteItem[]>(() => {
     const closeAnd = (fn: () => void) => () => {
@@ -70,6 +114,19 @@ export const CommandPalette: React.FC = () => {
     };
 
     const actions: PaletteItem[] = [
+      {
+        id: 'act-ask-vault',
+        group: 'Actions',
+        title: 'Ask Your Vault (Offline Q&A)',
+        subtitle: 'Instant local answers on spending, merchants, subscriptions & safe-to-spend',
+        keywords: 'ask vault question query nlp ai chat spending compare',
+        icon: MessageSquareText,
+        badge: 'Local',
+        onSelect: () => {
+          setMode('ask');
+          inputRef.current?.focus();
+        },
+      },
       {
         id: 'act-add',
         group: 'Actions',
@@ -189,6 +246,15 @@ export const CommandPalette: React.FC = () => {
         onSelect: closeAnd(() => setActiveNav('goals')),
       },
       {
+        id: 'nav-forecast',
+        group: 'Navigation',
+        title: 'Go to Forecast Lab',
+        subtitle: '12-month & 5-year net worth trajectory & what-if milestones',
+        keywords: 'forecast lab net worth projection trajectory what-if milestones future',
+        icon: LineChart,
+        onSelect: closeAnd(() => setActiveNav('forecast')),
+      },
+      {
         id: 'nav-accounts',
         group: 'Navigation',
         title: 'Accounts & Vault Settings',
@@ -257,6 +323,9 @@ export const CommandPalette: React.FC = () => {
   ]);
 
   const filteredItems = useMemo(() => {
+    if (mode === 'ask') {
+      return [];
+    }
     const q = query.trim().toLowerCase();
     if (!q) {
       return allItems.filter((item) => item.group === 'Actions' || item.group === 'Navigation');
@@ -293,11 +362,11 @@ export const CommandPalette: React.FC = () => {
       }));
 
     return [...matches.slice(0, 10), ...txMatches];
-  }, [query, allItems, data.transactions, currency, privacyMask, setOpen, openQuickAdd]);
+  }, [mode, query, allItems, data.transactions, currency, privacyMask, setOpen, openQuickAdd]);
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [query]);
+  }, [query, mode]);
 
   useEffect(() => {
     if (!open) return;
@@ -305,7 +374,14 @@ export const CommandPalette: React.FC = () => {
       if (e.key === 'Escape') {
         e.preventDefault();
         setOpen(false);
-      } else if (e.key === 'ArrowDown') {
+        return;
+      }
+
+      if (mode !== 'all' || filteredItems.length === 0) {
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedIndex((i) => Math.min(filteredItems.length - 1, i + 1));
       } else if (e.key === 'ArrowUp') {
@@ -318,90 +394,290 @@ export const CommandPalette: React.FC = () => {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, filteredItems, selectedIndex, setOpen]);
+  }, [open, mode, filteredItems, selectedIndex, setOpen]);
 
   if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4 bg-slate-950/65 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] sm:pt-[10vh] px-4 bg-black/50 backdrop-blur-[2px]"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) setOpen(false);
       }}
     >
-      <div className="w-full max-w-xl rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-200/80 dark:border-slate-800">
-          <Search className="w-4 h-4 text-slate-400 shrink-0" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Jump to view, run action, or search transactions..."
-            autoFocus
-            className="flex-1 bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none"
-          />
-          <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-mono text-slate-400">
-            ESC
-          </kbd>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command Palette and Ask Vault"
+        className="tactile-card-elevated vl-fade-up w-full max-w-2xl overflow-hidden flex flex-col max-h-[82vh]"
+      >
+        {/* Top Search & Mode Header */}
+        <div className="p-3.5 sm:p-4 border-b border-[var(--border-hairline)] space-y-3 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="tactile-input flex-1 flex items-center gap-2.5 px-3 py-2 transition-colors focus-within:border-[var(--focus-ring)] focus-within:outline-2 focus-within:outline-[var(--focus-ring)] focus-within:outline-offset-2">
+              {mode === 'ask' || likelyQuestion ? (
+                <MessageSquareText
+                  className="w-4 h-4 shrink-0"
+                  style={{ color: 'var(--accent-primary-text)' }}
+                  aria-hidden="true"
+                />
+              ) : (
+                <Search
+                  className="w-4 h-4 shrink-0 text-[var(--text-muted)]"
+                  aria-hidden="true"
+                />
+              )}
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={
+                  mode === 'ask'
+                    ? 'Ask your vault: e.g. How much did I spend on dining this month?'
+                    : 'Jump to view, search transactions, or ask your vault...'
+                }
+                aria-label={
+                  mode === 'ask'
+                    ? 'Ask your vault a question'
+                    : 'Search commands, transactions, or ask your vault'
+                }
+                autoFocus
+                className="flex-1 min-w-0 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+              />
+              {query.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearQuery}
+                  aria-label="Clear search query"
+                  className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors cursor-pointer shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close command palette"
+              className="tactile-btn p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer shrink-0"
+            >
+              <X className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </div>
+
+          {/* Compact Tactile Mode Switch */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div
+              role="group"
+              aria-label="Palette mode"
+              className="tactile-well p-0.5 inline-flex items-center gap-0.5"
+            >
+              <button
+                type="button"
+                onClick={() => handleModeChange('all')}
+                aria-pressed={mode === 'all'}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  mode === 'all'
+                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-hairline)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-transparent'
+                }`}
+                style={mode === 'all' ? { boxShadow: 'var(--shadow-btn)' } : undefined}
+              >
+                <Search className="w-3 h-3" aria-hidden="true" />
+                <span>All &amp; Commands</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeChange('ask')}
+                aria-pressed={mode === 'ask'}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  mode === 'ask'
+                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-hairline)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-transparent'
+                }`}
+                style={mode === 'ask' ? { boxShadow: 'var(--shadow-btn)' } : undefined}
+              >
+                <MessageSquareText
+                  className="w-3 h-3"
+                  style={
+                    mode === 'ask'
+                      ? { color: 'var(--accent-primary-text)' }
+                      : undefined
+                  }
+                  aria-hidden="true"
+                />
+                <span>Ask Vault</span>
+              </button>
+            </div>
+
+            <span className="text-[11px] text-[var(--text-muted)] hidden sm:inline">
+              {mode === 'ask'
+                ? '100% local Q&A — tap a prompt or type any spending question'
+                : 'Tip: type a question directly to query your vault'}
+            </span>
+          </div>
         </div>
 
-        <div className="max-h-[58vh] overflow-y-auto py-2">
-          {filteredItems.length === 0 ? (
-            <div className="py-10 text-center text-xs text-slate-400">
-              No matching commands, categories, or transactions.
-            </div>
-          ) : (
-            filteredItems.map((item, idx) => {
-              const Icon = item.icon;
-              const prevGroup = idx > 0 ? filteredItems[idx - 1].group : null;
-              const showHeader = item.group !== prevGroup;
-              const selected = idx === selectedIndex;
-
-              return (
-                <React.Fragment key={item.id}>
-                  {showHeader && (
-                    <div className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      {item.group}
-                    </div>
-                  )}
+        {/* Scrollable Results & Ask Vault Area */}
+        <div className="overflow-y-auto flex-1">
+          {showAskVault && (
+            <div
+              className={`p-3.5 sm:p-4 ${
+                mode === 'all' && filteredItems.length > 0
+                  ? 'border-b border-[var(--border-hairline)]'
+                  : ''
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  Ask Vault · Instant Offline Answer
+                </span>
+                {mode === 'all' && (
                   <button
                     type="button"
-                    onMouseEnter={() => setSelectedIndex(idx)}
-                    onClick={item.onSelect}
-                    className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer ${
-                      selected
-                        ? 'bg-indigo-600/10 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-200'
-                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                    }`}
+                    onClick={() => handleModeChange('ask')}
+                    className="text-[11px] font-semibold cursor-pointer hover:underline"
+                    style={{ color: 'var(--accent-primary-text)' }}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Icon
-                        className={`w-4 h-4 shrink-0 ${
-                          selected ? 'text-indigo-500' : 'text-slate-400'
-                        }`}
-                      />
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate">{item.title}</div>
-                        {item.subtitle && (
-                          <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
-                            {item.subtitle}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {item.badge && (
-                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
-                          {item.badge}
-                        </span>
-                      )}
-                      {selected && <CornerDownLeft className="w-3.5 h-3.5 text-indigo-500" />}
-                    </div>
+                    Open Ask Vault view
                   </button>
-                </React.Fragment>
-              );
-            })
+                )}
+              </div>
+              <AskVaultPanel
+                vault={data}
+                privacyMask={privacyMask}
+                query={query}
+                onQueryChange={setQuery}
+                onDrillDown={handleDrillDown}
+                compact
+                hideInput
+              />
+            </div>
           )}
+
+          {mode === 'all' && (
+            <div className="py-2">
+              {filteredItems.length === 0 ? (
+                !showAskVault && (
+                  <div className="py-10 px-4 text-center space-y-2">
+                    <div className="text-xs font-medium text-[var(--text-muted)]">
+                      No matching commands, categories, or transactions.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleModeChange('ask')}
+                      className="tactile-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer"
+                      style={{ color: 'var(--accent-primary-text)' }}
+                    >
+                      <MessageSquareText className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Ask Vault about &ldquo;{query.trim()}&rdquo;</span>
+                    </button>
+                  </div>
+                )
+              ) : (
+                filteredItems.map((item, idx) => {
+                  const Icon = item.icon;
+                  const prevGroup = idx > 0 ? filteredItems[idx - 1].group : null;
+                  const showHeader = item.group !== prevGroup;
+                  const selected = idx === selectedIndex;
+
+                  return (
+                    <React.Fragment key={item.id}>
+                      {showHeader && (
+                        <div className="px-4 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                          {item.group}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onMouseEnter={() => setSelectedIndex(idx)}
+                        onClick={item.onSelect}
+                        className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer ${
+                          selected
+                            ? ''
+                            : 'text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+                        }`}
+                        style={
+                          selected
+                            ? {
+                                backgroundColor: 'var(--accent-primary-soft)',
+                                color: 'var(--accent-primary-text)',
+                              }
+                            : undefined
+                        }
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Icon
+                            className={`w-4 h-4 shrink-0 ${
+                              selected ? '' : 'text-[var(--text-muted)]'
+                            }`}
+                          />
+                          <div className="min-w-0">
+                            <div
+                              className={`text-sm font-medium truncate ${
+                                selected ? '' : 'text-[var(--text-primary)]'
+                              }`}
+                            >
+                              {item.title}
+                            </div>
+                            {item.subtitle && (
+                              <div className="text-[11px] text-[var(--text-muted)] truncate">
+                                {item.subtitle}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {item.badge && (
+                            <span className="px-1.5 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[11px] font-mono tabular-nums text-[var(--text-secondary)]">
+                              {item.badge}
+                            </span>
+                          )}
+                          {selected && (
+                            <CornerDownLeft
+                              className="w-3.5 h-3.5 shrink-0"
+                              aria-hidden="true"
+                            />
+                          )}
+                        </div>
+                      </button>
+                    </React.Fragment>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Keyboard Navigation Footer */}
+        <div className="px-4 py-2 border-t border-[var(--border-hairline)] bg-[var(--bg-subtle)]/60 flex items-center justify-between gap-3 text-[11px] text-[var(--text-muted)] shrink-0">
+          <div className="flex items-center gap-3">
+            {mode === 'all' && (
+              <>
+                <span className="inline-flex items-center gap-1">
+                  <kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-hairline)] font-mono text-[10px] text-[var(--text-secondary)]">
+                    ↑↓
+                  </kbd>
+                  <span>Navigate</span>
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-hairline)] font-mono text-[10px] text-[var(--text-secondary)]">
+                    ↵
+                  </kbd>
+                  <span>Select</span>
+                </span>
+              </>
+            )}
+            <span className="inline-flex items-center gap-1">
+              <kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-hairline)] font-mono text-[10px] text-[var(--text-secondary)]">
+                ESC
+              </kbd>
+              <span>Close</span>
+            </span>
+          </div>
+          <span className="font-medium text-[var(--text-secondary)]">VaultLedger</span>
         </div>
       </div>
     </div>

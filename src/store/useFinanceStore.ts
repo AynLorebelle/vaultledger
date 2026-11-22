@@ -4,6 +4,8 @@ import type {
   BankImportPreset,
   Category,
   CategoryRule,
+  CurrencyCode,
+  ForecastMilestone,
   NavSection,
   ParsedImportRow,
   RecurrenceFrequency,
@@ -15,6 +17,11 @@ import type {
   VaultSettings,
 } from '../types/finance';
 import { hashPasscode, verifyPasscode } from '../core/crypto';
+import {
+  getDefaultRatesForBase,
+  normalizeVaultData,
+  rebaseExchangeRates,
+} from '../core/currency';
 import { applyRulesToTransaction } from '../core/rules';
 import { createEmptyVault, createSampleVault } from '../core/seedData';
 import { loadStoredVault, saveStoredVault } from '../core/storage';
@@ -25,6 +32,7 @@ export interface ToastMessage {
   id: string;
   message: string;
   type: 'success' | 'info' | 'error';
+  action?: { label: string; onClick: () => void };
 }
 
 export type NewTransactionInput = Omit<
@@ -46,6 +54,7 @@ export interface FinanceStoreState {
   timeRange: TimeRange;
   selectedCategoryFilter: string | null;
   selectedDateFilter: string | null;
+  selectedSearchFilter: string | null;
   quickAddOpen: boolean;
   editingTransactionId: string | null;
   commandPaletteOpen: boolean;
@@ -60,12 +69,17 @@ export interface FinanceStoreState {
   setTimeRange: (range: TimeRange) => void;
   drillDownCategory: (categoryId: string | null) => void;
   drillDownDate: (date: string | null) => void;
+  drillDownSearch: (query: string | null) => void;
   openQuickAdd: (editingTransactionId?: string | null) => void;
   closeQuickAdd: () => void;
   setCommandPaletteOpen: (open: boolean) => void;
   openImportExport: (tab?: ImportExportTab) => void;
   closeImportExport: () => void;
-  showToast: (message: string, type?: ToastMessage['type']) => void;
+  showToast: (
+    message: string,
+    type?: ToastMessage['type'],
+    action?: { label: string; onClick: () => void },
+  ) => void;
   clearToast: () => void;
   undo: () => void;
   redo: () => void;
@@ -116,6 +130,12 @@ export interface FinanceStoreState {
   deleteImportPreset: (id: string) => void;
 
   updateSettings: (patch: Partial<VaultSettings>) => void;
+  setBaseCurrency: (nextCurrency: CurrencyCode) => void;
+  updateExchangeRate: (code: CurrencyCode, rate: number) => void;
+  resetExchangeRates: () => void;
+  addForecastMilestone: (milestone: Omit<ForecastMilestone, 'id'>) => void;
+  toggleForecastMilestone: (id: string) => void;
+  deleteForecastMilestone: (id: string) => void;
   toggleTheme: () => void;
   togglePrivacyMask: () => void;
   setVaultPasscode: (passcode: string | null) => Promise<void>;
@@ -238,6 +258,7 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
     timeRange: 'this_month',
     selectedCategoryFilter: null,
     selectedDateFilter: null,
+    selectedSearchFilter: null,
     quickAddOpen: false,
     editingTransactionId: null,
     commandPaletteOpen: false,
@@ -255,15 +276,16 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
       futureStack = [];
 
       if (stored && Array.isArray(stored.accounts) && Array.isArray(stored.categories)) {
+        const normalized = normalizeVaultData(stored);
         const hasPasscode = Boolean(
-          stored.settings?.passcodeHash && stored.settings?.passcodeSalt,
+          normalized.settings?.passcodeHash && normalized.settings?.passcodeSalt,
         );
         set({
           initialized: true,
           storageMode: mode,
-          data: stored,
+          data: normalized,
           locked: hasPasscode,
-          lastSavedAt: stored.updatedAt ?? null,
+          lastSavedAt: normalized.updatedAt ?? null,
           canUndo: false,
           canRedo: false,
         });
@@ -291,6 +313,7 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
       set((state) => ({
         selectedCategoryFilter: categoryId,
         selectedDateFilter: categoryId ? null : state.selectedDateFilter,
+        selectedSearchFilter: categoryId ? null : state.selectedSearchFilter,
         activeNav: categoryId ? 'transactions' : state.activeNav,
       })),
 
@@ -298,8 +321,19 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
       set((state) => ({
         selectedDateFilter: date,
         selectedCategoryFilter: date ? null : state.selectedCategoryFilter,
+        selectedSearchFilter: date ? null : state.selectedSearchFilter,
         activeNav: date ? 'transactions' : state.activeNav,
       })),
+
+    drillDownSearch: (query) => {
+      const cleaned = query !== null && query.trim().length > 0 ? query.trim() : null;
+      set((state) => ({
+        selectedSearchFilter: cleaned,
+        selectedCategoryFilter: cleaned ? null : state.selectedCategoryFilter,
+        selectedDateFilter: cleaned ? null : state.selectedDateFilter,
+        activeNav: cleaned ? 'transactions' : state.activeNav,
+      }));
+    },
 
     openQuickAdd: (editingTransactionId = null) =>
       set({
@@ -323,17 +357,18 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
 
     closeImportExport: () => set({ importExportOpen: false }),
 
-    showToast: (message, type = 'info') => {
+    showToast: (message, type = 'info', action) => {
       if (toastTimer !== null) {
         clearTimeout(toastTimer);
       }
       const id = generateId('toast');
-      set({ toast: { id, message, type } });
+      set({ toast: { id, message, type, action } });
+      const durationMs = action ? 5500 : 3600;
       toastTimer = setTimeout(() => {
         if (get().toast?.id === id) {
           set({ toast: null });
         }
-      }, 3600);
+      }, durationMs);
     },
 
     clearToast: () => {
@@ -933,6 +968,96 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
       }));
     },
 
+    setBaseCurrency: (nextCurrency) => {
+      const prevSettings = get().data.settings;
+      if (
+        prevSettings.baseCurrency === nextCurrency &&
+        prevSettings.exchangeRates[nextCurrency] === 1
+      ) {
+        return;
+      }
+      const nowIso = new Date().toISOString();
+      commitData((prev) => ({
+        ...prev,
+        settings: {
+          ...prev.settings,
+          baseCurrency: nextCurrency,
+          exchangeRates: rebaseExchangeRates(
+            prev.settings.exchangeRates,
+            prev.settings.baseCurrency,
+            nextCurrency,
+          ),
+          exchangeRatesUpdatedAt: nowIso,
+        },
+      }));
+      get().showToast(`Base currency switched to ${nextCurrency} — rates rebased`, 'success');
+    },
+
+    updateExchangeRate: (code, rate) => {
+      if (!Number.isFinite(rate) || rate <= 0) {
+        return;
+      }
+      if (code === get().data.settings.baseCurrency) {
+        return;
+      }
+      const nowIso = new Date().toISOString();
+      commitData((prev) => ({
+        ...prev,
+        settings: {
+          ...prev.settings,
+          exchangeRates: {
+            ...prev.settings.exchangeRates,
+            [code]: rate,
+          },
+          exchangeRatesUpdatedAt: nowIso,
+        },
+      }));
+    },
+
+    resetExchangeRates: () => {
+      const nowIso = new Date().toISOString();
+      const baseCurrency = get().data.settings.baseCurrency;
+      commitData((prev) => ({
+        ...prev,
+        settings: {
+          ...prev.settings,
+          exchangeRates: getDefaultRatesForBase(prev.settings.baseCurrency),
+          exchangeRatesUpdatedAt: nowIso,
+        },
+      }));
+      get().showToast(`Reset exchange rates to defaults for ${baseCurrency}`, 'info');
+    },
+
+    addForecastMilestone: (milestone) => {
+      const created: ForecastMilestone = {
+        ...milestone,
+        id: generateId('ms'),
+        label: milestone.label.trim() || 'Milestone',
+        monthOffset: Math.max(1, Math.min(60, Math.round(milestone.monthOffset))),
+        amount: roundMoney(milestone.amount),
+      };
+      commitData((prev) => ({
+        ...prev,
+        forecastMilestones: [...(prev.forecastMilestones ?? []), created],
+      }));
+    },
+
+    toggleForecastMilestone: (id) => {
+      commitData((prev) => ({
+        ...prev,
+        forecastMilestones: (prev.forecastMilestones ?? []).map((ms) =>
+          ms.id === id ? { ...ms, enabled: !ms.enabled } : ms,
+        ),
+      }));
+    },
+
+    deleteForecastMilestone: (id) => {
+      commitData((prev) => ({
+        ...prev,
+        forecastMilestones: (prev.forecastMilestones ?? []).filter((ms) => ms.id !== id),
+      }));
+    },
+
     toggleTheme: () => {
       commitData(
         (prev) => ({
@@ -1016,6 +1141,7 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
       set({
         selectedCategoryFilter: null,
         selectedDateFilter: null,
+        selectedSearchFilter: null,
       });
     },
 
@@ -1025,14 +1151,17 @@ export const useFinanceStore = create<FinanceStoreState>((set, get) => {
       set({
         selectedCategoryFilter: null,
         selectedDateFilter: null,
+        selectedSearchFilter: null,
       });
     },
 
     replaceVaultData: (vault) => {
-      commitData(() => vault);
+      const normalized = normalizeVaultData(vault);
+      commitData(() => normalized);
       set({
         selectedCategoryFilter: null,
         selectedDateFilter: null,
+        selectedSearchFilter: null,
       });
     },
 

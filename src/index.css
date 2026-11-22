@@ -2,20 +2,176 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@layer base {
-  :root {
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  }
+:root {
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
+  --bg-canvas: #F6F5F1;
+  --bg-surface: #FFFFFF;
+  --bg-surface-hover: #FAF9F6;
+  --bg-subtle: #ECEAE3;
+  --bg-inset: #E6E3DA;
+  --text-primary: #14171A;
+  --text-secondary: #3B434C;
+  --text-muted: #57606A;
+  --border-hairline: #DDD9CE;
+  --border-strong: #C6C0B2;
+  --accent-primary: #1B4D3E;
+  --accent-primary-hover: #143B2F;
+  --accent-primary-text: #1B4D3E;
+  --accent-primary-soft: rgba(27, 77, 62, 0.10);
+  --accent-positive: #0F766E;
+  --accent-positive-soft: rgba(15, 118, 110, 0.10);
+  --accent-warning: #B45309;
+  --accent-warning-soft: rgba(180, 83, 9, 0.11);
+  --accent-danger: #BE123C;
+  --accent-danger-soft: rgba(190, 18, 60, 0.10);
+  --accent-info: #1D4ED8;
+  --accent-info-soft: rgba(29, 78, 216, 0.10);
+  --shadow-card: 0 1px 2px rgba(20, 23, 26, 0.05), 0 4px 12px -2px rgba(20, 23, 26, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --shadow-elevated: 0 8px 24px -4px rgba(20, 23, 26, 0.12), 0 2px 6px rgba(20, 23, 26, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --shadow-btn: 0 1px 2px rgba(20, 23, 26, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  --focus-ring: #1B4D3E;
+}
+
+.dark {
+  --bg-canvas: #111315;
+  --bg-surface: #1A1D21;
+  --bg-surface-hover: #21252B;
+  --bg-subtle: #24282E;
+  --bg-inset: #15181C;
+  --text-primary: #F3F4F6;
+  --text-secondary: #D1D5DB;
+  --text-muted: #9BA3AE;
+  --border-hairline: #2C313A;
+  --border-strong: #3E4552;
+  --accent-primary: #0F766E;
+  --accent-primary-hover: #115E59;
+  --accent-primary-text: #2DD4BF;
+  --accent-primary-soft: rgba(45, 212, 191, 0.12);
+  --accent-positive: #34D399;
+  --accent-positive-soft: rgba(52, 211, 153, 0.13);
+  --accent-warning: #F59E0B;
+  --accent-warning-soft: rgba(245, 158, 11, 0.13);
+  --accent-danger: #FB7185;
+  --accent-danger-soft: rgba(251, 113, 133, 0.13);
+  --accent-info: #60A5FA;
+  --accent-info-soft: rgba(96, 165, 250, 0.13);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 16px -4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-elevated: 0 16px 36px -6px rgba(0, 0, 0, 0.55), 0 4px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --shadow-btn: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  --focus-ring: #2DD4BF;
+}
+
+@layer base {
   body {
     font-family: var(--font-sans);
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
     overflow-x: hidden;
   }
 
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .tactile-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-hairline);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-card);
+  }
+
+  .tactile-card-elevated {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .tactile-well {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-hairline);
+    border-radius: 0.75rem;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
+  .tactile-btn {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-hairline);
+    box-shadow: var(--shadow-btn);
+    transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
+  }
+
+  .tactile-btn:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--border-strong);
+  }
+
+  .tactile-btn:active {
+    transform: translateY(1px);
+  }
+
+  .tactile-btn-primary {
+    background: var(--accent-primary);
+    color: #FFFFFF;
+    border: 1px solid transparent;
+    box-shadow: var(--shadow-btn);
+    transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
+  }
+
+  .tactile-btn-primary:hover {
+    background: var(--accent-primary-hover);
+  }
+
+  .tactile-btn-primary:active {
+    transform: translateY(1px);
+  }
+
+  .tactile-input {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-hairline);
+    border-radius: 0.625rem;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+}
+
+@keyframes vlFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.vl-fade-up {
+  animation: vlFadeUp 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Utility to hide scrollbars on chip strips */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Subtle custom scrollbars for desktop feel */
@@ -29,12 +185,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
+  background: rgba(115, 120, 128, 0.28);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.45);
+  background: rgba(115, 120, 128, 0.48);
 }
 
 /* Privacy mask blur utility */
@@ -46,6 +202,17 @@
 
 .privacy-blur:hover {
   filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @media print {

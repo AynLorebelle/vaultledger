@@ -11,11 +11,11 @@ interface SpendingHeatmapProps {
 }
 
 const LEVEL_CLASSES: Record<0 | 1 | 2 | 3 | 4, string> = {
-  0: 'bg-slate-100 dark:bg-slate-800/70 border-slate-200/60 dark:border-slate-800',
-  1: 'bg-indigo-200 dark:bg-indigo-950 border-indigo-300/60 dark:border-indigo-900',
-  2: 'bg-indigo-400 dark:bg-indigo-700 border-indigo-500/40 dark:border-indigo-600',
-  3: 'bg-indigo-600 dark:bg-indigo-500 border-indigo-700/40 dark:border-indigo-400',
-  4: 'bg-rose-500 dark:bg-rose-500 border-rose-600/40 dark:border-rose-400',
+  0: 'bg-[var(--bg-subtle)] border-[var(--border-hairline)]',
+  1: 'bg-[#D6EAE3] dark:bg-[#163631] border-[#BCD8CE] dark:border-[#1E4B45]',
+  2: 'bg-[#7BB4A1] dark:bg-[#135D55] border-[#619D89] dark:border-[#1B7B70]',
+  3: 'bg-[#1B4D3E] dark:bg-[#2DD4BF] border-[#143B2F] dark:border-[#5EEAD4]',
+  4: 'bg-[var(--accent-danger)] border-[var(--accent-danger)]',
 };
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -88,19 +88,21 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
         <div className="flex items-center gap-3">
           <span>
-            <strong className="text-slate-700 dark:text-slate-200 font-semibold tabular-nums">
+            <strong className="text-[var(--text-primary)] font-semibold tabular-nums">
               {activeSpendDays}
             </strong>{' '}
             spend days
           </span>
-          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <span className="text-[var(--border-strong)]" aria-hidden="true">
+            •
+          </span>
           <span>
             Total:{' '}
             <strong
-              className={`text-slate-700 dark:text-slate-200 font-semibold tabular-nums ${
+              className={`text-[var(--text-primary)] font-semibold tabular-nums ${
                 privacyMask ? 'privacy-blur' : ''
               }`}
             >
@@ -109,12 +111,13 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5" aria-label="Spending intensity legend">
           <span className="text-[11px]">Less</span>
           {([0, 1, 2, 3, 4] as const).map((lvl) => (
             <span
               key={lvl}
               className={`w-3 h-3 rounded-[3px] border ${LEVEL_CLASSES[lvl]}`}
+              aria-hidden="true"
             />
           ))}
           <span className="text-[11px]">Spike</span>
@@ -125,7 +128,7 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
       <div className="overflow-x-auto pb-1">
         <div className="inline-flex flex-col gap-1 min-w-max">
           {/* Month labels */}
-          <div className="flex items-center pl-8 h-4 relative text-[10px] font-medium text-slate-400 dark:text-slate-500">
+          <div className="flex items-center pl-8 h-4 relative text-[10px] font-medium text-[var(--text-muted)]">
             {monthLabels.map((ml) => (
               <span
                 key={`${ml.weekIdx}-${ml.label}`}
@@ -139,7 +142,7 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
 
           <div className="flex gap-1.5">
             {/* Weekday column */}
-            <div className="grid grid-rows-7 gap-[3px] pr-1 text-[10px] text-slate-400 dark:text-slate-500 select-none">
+            <div className="grid grid-rows-7 gap-[3px] pr-1 text-[10px] text-[var(--text-muted)] select-none">
               {WEEKDAY_LABELS.map((wd, idx) => (
                 <div key={wd} className="h-[14px] leading-[14px] text-right">
                   {idx % 2 === 1 ? wd : ''}
@@ -163,14 +166,17 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
                         onClick={() => onSelectDate?.(day.date)}
                         onMouseEnter={() => setHovered(day)}
                         onMouseLeave={() => setHovered((cur) => (cur?.date === day.date ? null : cur))}
-                        className={`w-[14px] h-[14px] rounded-[3px] border transition-transform hover:scale-125 cursor-pointer ${
+                        onFocus={() => setHovered(day)}
+                        onBlur={() => setHovered((cur) => (cur?.date === day.date ? null : cur))}
+                        className={`w-[14px] h-[14px] rounded-[3px] border transition-transform hover:scale-125 focus-visible:scale-125 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--focus-ring)] cursor-pointer ${
                           LEVEL_CLASSES[day.level]
                         } ${
                           isSelected
-                            ? 'ring-2 ring-indigo-500 ring-offset-1 dark:ring-offset-slate-900'
+                            ? 'ring-2 ring-[var(--focus-ring)] ring-offset-1 ring-offset-[var(--bg-surface)]'
                             : ''
                         }`}
                         aria-label={`${day.date}: ${formatMoney(day.amount, currency)} (${day.count} transactions)`}
+                        aria-pressed={isSelected}
                       />
                     );
                   })}
@@ -182,18 +188,18 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
       </div>
 
       {/* Hover detail footer bar */}
-      <div className="h-7 flex items-center justify-between px-3 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 text-xs">
+      <div className="tactile-well min-h-8 flex items-center justify-between px-3 py-1.5 text-xs">
         {hovered ? (
           <>
-            <span className="font-medium text-slate-700 dark:text-slate-200">
+            <span className="font-semibold text-[var(--text-primary)]">
               {formatShortDate(hovered.date)}
             </span>
             <div className="flex items-center gap-3">
-              <span className="text-slate-500 dark:text-slate-400 tabular-nums">
+              <span className="text-[var(--text-muted)] tabular-nums">
                 {hovered.count} {hovered.count === 1 ? 'txn' : 'txns'}
               </span>
               <span
-                className={`font-semibold text-slate-900 dark:text-slate-100 tabular-nums ${
+                className={`font-semibold text-[var(--text-primary)] tabular-nums ${
                   privacyMask ? 'privacy-blur' : ''
                 }`}
               >
@@ -202,7 +208,7 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
             </div>
           </>
         ) : (
-          <span className="text-slate-400 dark:text-slate-500">
+          <span className="text-[var(--text-muted)]">
             Hover a day for details · Click any square to drill into that day&apos;s transactions
           </span>
         )}

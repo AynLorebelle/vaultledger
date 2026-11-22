@@ -18,12 +18,20 @@ import {
   CheckCircle2,
   TrendingDown,
   PiggyBank,
+  LineChart,
 } from 'lucide-react';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { computeAllAccountBalances, formatCurrency } from '../core/analytics';
 import { extractDebtsFromAccounts, simulateDebtPayoff } from '../core/debt';
 import type { DebtPayoffInput } from '../types/finance';
-import { CategoryIcon, Modal, Money, PALETTE_COLORS, formatShortDate } from './ui';
+import {
+  CategoryIcon,
+  Modal,
+  Money,
+  PALETTE_COLORS,
+  formatShortDate,
+  getChartTheme,
+} from './ui';
 
 function monthsRemaining(targetDateIso: string): number {
   const parts = targetDateIso.split('-').map(Number);
@@ -38,10 +46,13 @@ export const GoalsDebtView: React.FC = () => {
   const addSavingsGoal = useFinanceStore((s) => s.addSavingsGoal);
   const contributeToGoal = useFinanceStore((s) => s.contributeToGoal);
   const deleteSavingsGoal = useFinanceStore((s) => s.deleteSavingsGoal);
+  const setActiveNav = useFinanceStore((s) => s.setActiveNav);
   const showToast = useFinanceStore((s) => s.showToast);
 
   const currency = data.settings.baseCurrency;
   const privacyMask = data.settings.privacyMask;
+  const isDark = data.settings.theme === 'dark';
+  const chartTheme = useMemo(() => getChartTheme(isDark), [isDark]);
 
   // Savings Goal Contribution Popover State
   const [contributingGoalId, setContributingGoalId] = useState<string | null>(null);
@@ -189,30 +200,40 @@ export const GoalsDebtView: React.FC = () => {
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
               Savings Goals
             </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
               Track target milestones, monthly pace, and contribute directly from your accounts
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setGoalModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm cursor-pointer self-start sm:self-auto"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Goal</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setActiveNav('forecast')}
+              className="tactile-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer"
+            >
+              <LineChart className="w-3.5 h-3.5 text-[var(--accent-primary-text)]" />
+              <span>Model in Forecast Lab</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setGoalModalOpen(true)}
+              className="tactile-btn-primary inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Goal</span>
+            </button>
+          </div>
         </div>
 
         {data.savingsGoals.length === 0 ? (
-          <div className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-10 text-center">
-            <PiggyBank className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <div className="tactile-card p-10 text-center">
+            <PiggyBank className="w-8 h-8 text-[var(--text-muted)] mx-auto mb-3 opacity-60" />
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
               No savings goals yet
             </p>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-[var(--text-muted)] mt-1">
               Create an Emergency Fund, Vacation, or Home Down Payment goal to track progress.
             </p>
           </div>
@@ -232,22 +253,22 @@ export const GoalsDebtView: React.FC = () => {
               return (
                 <div
                   key={goal.id}
-                  className="rounded-2xl p-5 bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 shadow-xs flex flex-col justify-between gap-4"
+                  className="tactile-card p-5 flex flex-col justify-between gap-4"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3 min-w-0">
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-[var(--border-hairline)]"
                           style={{ backgroundColor: `${goal.color}1e`, color: goal.color }}
                         >
                           <CategoryIcon icon={goal.icon} className="w-5 h-5" />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                          <h3 className="text-sm font-bold text-[var(--text-primary)] truncate">
                             {goal.name}
                           </h3>
-                          <p className="text-[11px] text-slate-400">
+                          <p className="text-[11px] text-[var(--text-muted)] tabular-nums">
                             Target: {formatShortDate(goal.targetDate)}
                           </p>
                         </div>
@@ -255,22 +276,22 @@ export const GoalsDebtView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => deleteSavingsGoal(goal.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer"
-                        aria-label="Delete goal"
+                        className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-danger)] hover:bg-[var(--accent-danger-soft)] transition-colors cursor-pointer"
+                        aria-label={`Delete goal ${goal.name}`}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
                     <div className="mt-4">
-                      <div className="flex items-baseline justify-between">
+                      <div className="flex items-baseline justify-between gap-2">
                         <Money
                           amount={goal.currentAmount}
                           currency={currency}
                           privacyMask={privacyMask}
-                          className="text-xl font-bold text-slate-900 dark:text-white"
+                          className="text-xl font-bold text-[var(--text-primary)]"
                         />
-                        <span className="text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">
+                        <span className="text-xs font-semibold tabular-nums text-[var(--text-muted)]">
                           {pct}% of{' '}
                           <Money
                             amount={goal.targetAmount}
@@ -280,15 +301,21 @@ export const GoalsDebtView: React.FC = () => {
                           />
                         </span>
                       </div>
-                      <div className="mt-2 h-2.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <div className="tactile-well mt-2 h-2.5 w-full rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
-                          style={{ width: `${pct}%`, backgroundColor: goal.color }}
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: funded ? 'var(--accent-positive)' : goal.color,
+                          }}
                         />
                       </div>
-                      <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                      <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--text-muted)] tabular-nums">
                         {funded ? (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                          <span
+                            className="font-semibold flex items-center gap-1"
+                            style={{ color: 'var(--accent-positive)' }}
+                          >
                             <CheckCircle2 className="w-3.5 h-3.5" /> Goal Reached!
                           </span>
                         ) : (
@@ -299,7 +326,7 @@ export const GoalsDebtView: React.FC = () => {
                                 amount={monthlyNeeded}
                                 currency={currency}
                                 privacyMask={privacyMask}
-                                className="font-semibold text-slate-700 dark:text-slate-300"
+                                className="font-semibold text-[var(--text-secondary)]"
                               />
                               /mo
                             </span>
@@ -320,7 +347,7 @@ export const GoalsDebtView: React.FC = () => {
 
                   {/* Quick Contribute Popover / Trigger */}
                   {isContribOpen ? (
-                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-indigo-500/30 space-y-2.5">
+                    <div className="tactile-well p-3 space-y-2.5">
                       <div className="grid grid-cols-2 gap-2">
                         <input
                           type="number"
@@ -329,13 +356,15 @@ export const GoalsDebtView: React.FC = () => {
                           value={contribAmount}
                           onChange={(e) => setContribAmount(e.target.value)}
                           placeholder="Amount"
-                          className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-1.5 text-xs tabular-nums outline-none"
+                          aria-label={`Contribution amount for ${goal.name}`}
+                          className="tactile-input px-2.5 py-1.5 text-xs tabular-nums"
                           autoFocus
                         />
                         <select
                           value={contribFromAcc}
                           onChange={(e) => setContribFromAcc(e.target.value)}
-                          className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-1.5 text-xs outline-none"
+                          aria-label={`Source account for ${goal.name}`}
+                          className="tactile-input px-2.5 py-1.5 text-xs"
                         >
                           <option value="">Track only</option>
                           {data.accounts
@@ -351,14 +380,14 @@ export const GoalsDebtView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setContributingGoalId(null)}
-                          className="px-2.5 py-1 rounded-lg text-xs text-slate-500 hover:bg-slate-200/70 dark:hover:bg-slate-800 cursor-pointer"
+                          className="tactile-btn px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer"
                         >
                           Cancel
                         </button>
                         <button
                           type="button"
                           onClick={() => handleContribute(goal.id)}
-                          className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer"
+                          className="tactile-btn-primary px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer"
                         >
                           Confirm
                         </button>
@@ -372,7 +401,7 @@ export const GoalsDebtView: React.FC = () => {
                         setContribAmount(String(goal.monthlyContribution || 250));
                         setContribFromAcc('');
                       }}
-                      className="w-full py-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-indigo-600 hover:text-white text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                      className="tactile-btn w-full py-2 rounded-xl text-xs font-semibold cursor-pointer"
                     >
                       + Contribute to Goal
                     </button>
@@ -385,31 +414,42 @@ export const GoalsDebtView: React.FC = () => {
       </section>
 
       {/* SECTION 2: INTERACTIVE DEBT PAYOFF PLANNER */}
-      <section className="rounded-2xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800/80 p-6 shadow-xs space-y-6">
+      <section className="tactile-card p-6 space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-500/12 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{
+                backgroundColor: 'var(--accent-danger-soft)',
+                color: 'var(--accent-danger)',
+              }}
+            >
               <TrendingDown className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+              <h2 className="text-lg font-bold text-[var(--text-primary)] tracking-tight">
                 Interactive Debt Payoff Planner
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">
                 Compare Snowball vs. Avalanche strategies live using your credit card &amp; loan accounts
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <div
+              role="group"
+              aria-label="Debt payoff strategy"
+              className="tactile-well flex items-center p-1 gap-1"
+            >
               <button
                 type="button"
                 onClick={() => setStrategy('avalanche')}
+                aria-pressed={strategy === 'avalanche'}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                   strategy === 'avalanche'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'tactile-btn-primary'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <Flame className="w-3.5 h-3.5" />
@@ -418,10 +458,11 @@ export const GoalsDebtView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStrategy('snowball')}
+                aria-pressed={strategy === 'snowball'}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                   strategy === 'snowball'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'tactile-btn-primary'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <Snowflake className="w-3.5 h-3.5" />
@@ -432,7 +473,7 @@ export const GoalsDebtView: React.FC = () => {
             <button
               type="button"
               onClick={() => setAddDebtOpen(true)}
-              className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer"
+              className="tactile-btn inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               Add Scenario Debt
@@ -441,12 +482,24 @@ export const GoalsDebtView: React.FC = () => {
         </div>
 
         {allDebts.length === 0 ? (
-          <div className="py-10 text-center rounded-xl bg-emerald-500/6 border border-emerald-500/20">
-            <Sparkles className="w-7 h-7 text-emerald-500 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+          <div
+            className="tactile-well py-10 px-4 text-center"
+            style={{
+              backgroundColor: 'var(--accent-positive-soft)',
+              borderColor: 'var(--accent-positive)',
+            }}
+          >
+            <Sparkles
+              className="w-7 h-7 mx-auto mb-2"
+              style={{ color: 'var(--accent-positive)' }}
+            />
+            <p
+              className="text-sm font-semibold"
+              style={{ color: 'var(--accent-positive)' }}
+            >
               You have zero active debt balances!
             </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
               Click &ldquo;Add Scenario Debt&rdquo; above if you&apos;d like to model a hypothetical payoff plan.
             </p>
           </div>
@@ -454,12 +507,18 @@ export const GoalsDebtView: React.FC = () => {
           <>
             {/* Strategy Comparison Banner + Extra Monthly Slider */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+              <div className="lg:col-span-5 tactile-well p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">
                     Extra Monthly Payment
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-sm font-bold tabular-nums">
+                  <span
+                    className="px-2.5 py-0.5 rounded-lg text-sm font-bold tabular-nums"
+                    style={{
+                      backgroundColor: 'var(--accent-primary-soft)',
+                      color: 'var(--accent-primary-text)',
+                    }}
+                  >
                     +<Money amount={extraPayment} currency={currency} privacyMask={privacyMask} />/mo
                   </span>
                 </div>
@@ -469,44 +528,61 @@ export const GoalsDebtView: React.FC = () => {
                   max={1500}
                   step={25}
                   value={extraPayment}
+                  aria-label="Extra monthly debt payment"
                   onChange={(e) => setExtraPayment(Number(e.target.value))}
-                  className="w-full accent-indigo-600 cursor-pointer"
+                  className="w-full accent-[var(--accent-primary)] cursor-pointer"
                 />
-                <div className="flex justify-between text-[10px] text-slate-400 tabular-nums">
+                <div className="flex justify-between text-[10px] text-[var(--text-muted)] tabular-nums">
                   <span>$0 (Minimums only)</span>
                   <span>+$750</span>
                   <span>+$1,500/mo</span>
                 </div>
                 {extraPayment > 0 && (
-                  <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                  <div
+                    className="pt-2 border-t border-[var(--border-hairline)] text-xs font-medium tabular-nums"
+                    style={{ color: 'var(--accent-positive)' }}
+                  >
                     Extra payment saves{' '}
-                    <Money amount={extraInterestSaved} currency={currency} privacyMask={privacyMask} className="font-bold" />{' '}
+                    <Money
+                      amount={extraInterestSaved}
+                      currency={currency}
+                      privacyMask={privacyMask}
+                      className="font-bold"
+                    />{' '}
                     in interest &amp; <strong>{extraMonthsSaved} months</strong>!
                   </div>
                 )}
               </div>
 
               <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 p-4">
-                  <div className="text-[11px] text-slate-500">Debt-Free Date</div>
-                  <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                <div className="tactile-well p-4">
+                  <div className="text-[11px] text-[var(--text-muted)]">Debt-Free Date</div>
+                  <div
+                    className="text-lg font-bold mt-1 tabular-nums"
+                    style={{ color: 'var(--accent-positive)' }}
+                  >
                     {formatShortDate(activeSim.debtFreeDate)}
                   </div>
-                  <div className="text-xs text-slate-400 tabular-nums mt-0.5">
+                  <div className="text-xs text-[var(--text-muted)] tabular-nums mt-0.5">
                     {activeSim.monthsToPayoff} months ({(activeSim.monthsToPayoff / 12).toFixed(1)} yrs)
                   </div>
                 </div>
 
-                <div className="rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 p-4">
-                  <div className="text-[11px] text-slate-500">Total Interest ({strategy})</div>
-                  <div className="text-lg font-bold text-rose-600 dark:text-rose-400 mt-1">
+                <div className="tactile-well p-4">
+                  <div className="text-[11px] text-[var(--text-muted)]">
+                    Total Interest ({strategy})
+                  </div>
+                  <div
+                    className="text-lg font-bold mt-1 tabular-nums"
+                    style={{ color: 'var(--accent-danger)' }}
+                  >
                     <Money
                       amount={activeSim.totalInterestPaid}
                       currency={currency}
                       privacyMask={privacyMask}
                     />
                   </div>
-                  <div className="text-xs text-slate-400 mt-0.5">
+                  <div className="text-xs text-[var(--text-muted)] tabular-nums mt-0.5">
                     Principal:{' '}
                     <Money
                       amount={totalDebtBalance}
@@ -517,11 +593,17 @@ export const GoalsDebtView: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="rounded-xl bg-indigo-500/8 border border-indigo-500/25 p-4">
-                  <div className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
+                <div
+                  className="tactile-well p-4 border-l-4"
+                  style={{ borderLeftColor: 'var(--accent-primary)' }}
+                >
+                  <div
+                    className="text-[11px] font-semibold"
+                    style={{ color: 'var(--accent-primary-text)' }}
+                  >
                     Avalanche vs. Snowball
                   </div>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white mt-1">
+                  <div className="text-sm font-bold text-[var(--text-primary)] mt-1 tabular-nums">
                     {interestDiff > 1 ? (
                       <>
                         Avalanche saves{' '}
@@ -531,7 +613,7 @@ export const GoalsDebtView: React.FC = () => {
                       'Identical Interest Cost'
                     )}
                   </div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5 tabular-nums">
                     {monthsDiff > 0
                       ? `And finishes ${monthsDiff} mo faster`
                       : 'Snowball gives faster early wins'}
@@ -542,19 +624,24 @@ export const GoalsDebtView: React.FC = () => {
 
             {/* Chart + Payoff Order */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              <div className="lg:col-span-2 h-[260px]">
+              <div className="lg:col-span-2 h-[260px] min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartSeries}>
                     <defs>
                       <linearGradient id="debtAccGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.02} />
+                        <stop offset="5%" stopColor={chartTheme.positive} stopOpacity={0.28} />
+                        <stop offset="95%" stopColor={chartTheme.positive} stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.16)" vertical={false} />
-                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11, fill: chartTheme.tick }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
                     <YAxis
-                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      tick={{ fontSize: 11, fill: chartTheme.tick }}
                       axisLine={false}
                       tickLine={false}
                       tickFormatter={(v: number) =>
@@ -564,12 +651,14 @@ export const GoalsDebtView: React.FC = () => {
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        border: '1px solid rgba(51, 65, 85, 0.8)',
+                        backgroundColor: chartTheme.tooltipBg,
+                        border: `1px solid ${chartTheme.tooltipBorder}`,
                         borderRadius: '12px',
                         fontSize: '12px',
-                        color: '#f8fafc',
+                        color: chartTheme.tooltipText,
                       }}
+                      labelStyle={{ color: chartTheme.tooltipMuted, fontWeight: 600 }}
+                      itemStyle={{ color: chartTheme.tooltipText }}
                       formatter={(val: number, name: string) => [
                         privacyMask ? '••••••' : formatCurrency(val, currency),
                         name === 'accelerated' ? `With +$${extraPayment}/mo` : 'Minimums Only',
@@ -578,7 +667,7 @@ export const GoalsDebtView: React.FC = () => {
                     <Area
                       type="monotone"
                       dataKey="minimumOnly"
-                      stroke="#94a3b8"
+                      stroke={chartTheme.baseline}
                       strokeDasharray="4 4"
                       fill="transparent"
                       strokeWidth={1.8}
@@ -586,7 +675,7 @@ export const GoalsDebtView: React.FC = () => {
                     <Area
                       type="monotone"
                       dataKey="accelerated"
-                      stroke="#10b981"
+                      stroke={chartTheme.positive}
                       fill="url(#debtAccGrad)"
                       strokeWidth={2.5}
                     />
@@ -596,7 +685,7 @@ export const GoalsDebtView: React.FC = () => {
 
               {/* Payoff Order Timeline */}
               <div className="space-y-2.5">
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <div className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                   Payoff Order ({strategy})
                 </div>
                 {activeSim.payoffOrder.map((step, idx) => {
@@ -605,17 +694,23 @@ export const GoalsDebtView: React.FC = () => {
                   return (
                     <div
                       key={step.id}
-                      className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2"
+                      className="tactile-well p-3 flex items-center justify-between gap-2"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-6 h-6 rounded-full bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 text-xs font-bold flex items-center justify-center shrink-0 tabular-nums">
+                        <span
+                          className="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center shrink-0 tabular-nums"
+                          style={{
+                            backgroundColor: 'var(--accent-primary-soft)',
+                            color: 'var(--accent-primary-text)',
+                          }}
+                        >
                           {idx + 1}
                         </span>
                         <div className="min-w-0">
-                          <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                          <div className="text-xs font-semibold text-[var(--text-primary)] truncate">
                             {step.name}
                           </div>
-                          <div className="text-[11px] text-slate-400 tabular-nums">
+                          <div className="text-[11px] text-[var(--text-muted)] tabular-nums">
                             {debtObj ? `${debtObj.apr}% APR · ` : ''}Paid off in mo {step.paidOffMonth}
                           </div>
                         </div>
@@ -626,9 +721,12 @@ export const GoalsDebtView: React.FC = () => {
                             amount={debtObj?.balance ?? 0}
                             currency={currency}
                             privacyMask={privacyMask}
-                            className="text-xs font-bold text-slate-800 dark:text-slate-200 block"
+                            className="text-xs font-bold text-[var(--text-primary)] block"
                           />
-                          <span className="text-[10px] text-rose-500">
+                          <span
+                            className="text-[10px] font-medium tabular-nums"
+                            style={{ color: 'var(--accent-danger)' }}
+                          >
                             +<Money amount={step.interestPaid} currency={currency} privacyMask={privacyMask} /> int.
                           </span>
                         </div>
@@ -638,8 +736,9 @@ export const GoalsDebtView: React.FC = () => {
                             onClick={() =>
                               setCustomDebts((prev) => prev.filter((c) => c.id !== step.id))
                             }
-                            className="p-1 text-slate-400 hover:text-rose-500 cursor-pointer"
+                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--accent-danger)] hover:bg-[var(--accent-danger-soft)] transition-colors cursor-pointer"
                             title="Remove scenario debt"
+                            aria-label={`Remove scenario debt ${step.name}`}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -663,7 +762,7 @@ export const GoalsDebtView: React.FC = () => {
       >
         <form onSubmit={handleCreateGoal} className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               Goal Name
             </label>
             <input
@@ -673,12 +772,12 @@ export const GoalsDebtView: React.FC = () => {
               placeholder="e.g. Emergency Fund, Japan Trip"
               required
               autoFocus
-              className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+              className="tactile-input w-full px-3 py-2 text-sm"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Target Amount ({currency})
               </label>
               <input
@@ -687,11 +786,11 @@ export const GoalsDebtView: React.FC = () => {
                 value={goalTarget}
                 onChange={(e) => setGoalTarget(e.target.value)}
                 required
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm tabular-nums outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm tabular-nums"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Already Saved
               </label>
               <input
@@ -699,13 +798,13 @@ export const GoalsDebtView: React.FC = () => {
                 min="0"
                 value={goalCurrent}
                 onChange={(e) => setGoalCurrent(e.target.value)}
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm tabular-nums outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm tabular-nums"
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Monthly Contribution
               </label>
               <input
@@ -713,11 +812,11 @@ export const GoalsDebtView: React.FC = () => {
                 min="0"
                 value={goalMonthly}
                 onChange={(e) => setGoalMonthly(e.target.value)}
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm tabular-nums outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm tabular-nums"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Target Date
               </label>
               <input
@@ -725,18 +824,18 @@ export const GoalsDebtView: React.FC = () => {
                 value={goalDate}
                 onChange={(e) => setGoalDate(e.target.value)}
                 required
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm tabular-nums"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               Linked Savings Account (optional)
             </label>
             <select
               value={goalLinkedAcc}
               onChange={(e) => setGoalLinkedAcc(e.target.value)}
-              className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none"
+              className="tactile-input w-full px-3 py-2 text-sm"
             >
               <option value="">None (virtual bucket)</option>
               {data.accounts.map((a) => (
@@ -746,30 +845,39 @@ export const GoalsDebtView: React.FC = () => {
               ))}
             </select>
           </div>
-          <div className="flex gap-2">
-            {PALETTE_COLORS.slice(0, 7).map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setGoalColor(c)}
-                className={`w-6 h-6 rounded-full cursor-pointer ${
-                  goalColor === c ? 'ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-slate-900' : ''
-                }`}
-                style={{ backgroundColor: c }}
-              />
-            ))}
+          <div>
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
+              Goal Color
+            </label>
+            <div className="flex gap-2">
+              {PALETTE_COLORS.slice(0, 7).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setGoalColor(c)}
+                  aria-label={`Select goal color ${c}`}
+                  aria-pressed={goalColor === c}
+                  className={`w-6 h-6 rounded-full transition-transform cursor-pointer ${
+                    goalColor === c
+                      ? 'ring-2 ring-offset-2 ring-[var(--focus-ring)] ring-offset-[var(--bg-surface)] scale-110'
+                      : ''
+                  }`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
           </div>
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200/80 dark:border-slate-800">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border-hairline)]">
             <button
               type="button"
               onClick={() => setGoalModalOpen(false)}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-500 cursor-pointer"
+              className="tactile-btn px-4 py-2 rounded-xl text-xs font-medium cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
+              className="tactile-btn-primary inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer"
             >
               <Target className="w-3.5 h-3.5" />
               Create Goal
@@ -788,7 +896,7 @@ export const GoalsDebtView: React.FC = () => {
       >
         <form onSubmit={handleAddCustomDebt} className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
               Debt Label
             </label>
             <input
@@ -798,12 +906,12 @@ export const GoalsDebtView: React.FC = () => {
               placeholder="e.g. Store Card, Personal Loan"
               required
               autoFocus
-              className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm outline-none"
+              className="tactile-input w-full px-3 py-2 text-sm"
             />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Balance
               </label>
               <input
@@ -812,11 +920,11 @@ export const GoalsDebtView: React.FC = () => {
                 value={debtBalance}
                 onChange={(e) => setDebtBalance(e.target.value)}
                 required
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm tabular-nums outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm tabular-nums"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 APR (%)
               </label>
               <input
@@ -826,11 +934,11 @@ export const GoalsDebtView: React.FC = () => {
                 value={debtApr}
                 onChange={(e) => setDebtApr(e.target.value)}
                 required
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm tabular-nums outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm tabular-nums"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Min /mo
               </label>
               <input
@@ -839,21 +947,21 @@ export const GoalsDebtView: React.FC = () => {
                 value={debtMin}
                 onChange={(e) => setDebtMin(e.target.value)}
                 required
-                className="w-full rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 text-sm tabular-nums outline-none"
+                className="tactile-input w-full px-3 py-2 text-sm tabular-nums"
               />
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200/80 dark:border-slate-800">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border-hairline)]">
             <button
               type="button"
               onClick={() => setAddDebtOpen(false)}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-slate-500 cursor-pointer"
+              className="tactile-btn px-4 py-2 rounded-xl text-xs font-medium cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer"
+              className="tactile-btn-primary px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer"
             >
               Add to Planner
             </button>

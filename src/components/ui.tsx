@@ -185,17 +185,68 @@ export const AVAILABLE_CATEGORY_ICONS = [
   { id: 'graduation-cap', label: 'Education' },
 ];
 
+export interface ChartTheme {
+  grid: string;
+  tick: string;
+  tooltipBg: string;
+  tooltipBorder: string;
+  tooltipText: string;
+  tooltipMuted: string;
+  primary: string;
+  primaryFill: string;
+  secondary: string;
+  positive: string;
+  danger: string;
+  warning: string;
+  baseline: string;
+}
+
+export function getChartTheme(isDark: boolean): ChartTheme {
+  if (isDark) {
+    return {
+      grid: '#2C313A',
+      tick: '#9BA3AE',
+      tooltipBg: '#1A1D21',
+      tooltipBorder: '#2C313A',
+      tooltipText: '#F3F4F6',
+      tooltipMuted: '#9BA3AE',
+      primary: '#2DD4BF',
+      primaryFill: 'rgba(45, 212, 191, 0.16)',
+      secondary: '#60A5FA',
+      positive: '#34D399',
+      danger: '#FB7185',
+      warning: '#F59E0B',
+      baseline: '#9BA3AE',
+    };
+  }
+  return {
+    grid: '#DDD9CE',
+    tick: '#57606A',
+    tooltipBg: '#FFFFFF',
+    tooltipBorder: '#DDD9CE',
+    tooltipText: '#14171A',
+    tooltipMuted: '#57606A',
+    primary: '#1B4D3E',
+    primaryFill: 'rgba(27, 77, 62, 0.14)',
+    secondary: '#1D4ED8',
+    positive: '#0F766E',
+    danger: '#BE123C',
+    warning: '#B45309',
+    baseline: '#57606A',
+  };
+}
+
 export const PALETTE_COLORS = [
-  '#6366f1', // indigo
-  '#10b981', // emerald
-  '#0ea5e9', // sky
-  '#f59e0b', // amber
-  '#f43f5e', // rose
-  '#8b5cf6', // violet
-  '#14b8a6', // teal
-  '#ec4899', // pink
-  '#f97316', // orange
-  '#64748b', // slate
+  '#1B4D3E', // treasury pine
+  '#0F766E', // deep teal
+  '#1D4ED8', // cobalt
+  '#B45309', // ochre amber
+  '#BE123C', // crimson rose
+  '#6D28D9', // royal violet
+  '#0E7490', // ocean cyan
+  '#9D174D', // plum berry
+  '#C2410C', // burnt sienna
+  '#475569', // ledger slate
 ];
 
 interface ModalProps {
@@ -233,24 +284,27 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className={`w-full ${maxWidthClass} max-h-[90vh] flex flex-col rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title ?? 'Dialog'}
+        className={`tactile-card-elevated vl-fade-up w-full ${maxWidthClass} max-h-[90vh] flex flex-col overflow-hidden`}
       >
         {(title || headerRight) && (
-          <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-slate-200/80 dark:border-slate-800/80 shrink-0">
+          <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-[var(--border-hairline)] shrink-0">
             <div>
               {title && (
-                <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
+                <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
                   {title}
                 </h2>
               )}
               {subtitle && (
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">{subtitle}</p>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -258,7 +312,7 @@ export const Modal: React.FC<ModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] border border-transparent hover:border-[var(--border-hairline)] transition-colors cursor-pointer"
                 aria-label="Close modal"
               >
                 <X className="w-4 h-4" />
