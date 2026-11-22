@@ -16,11 +16,14 @@ VaultLedger gives you complete local ownership of your finances—zero subscript
 - **Savings Goals & Debt Payoff Planner**: Compare **Snowball vs. Avalanche** payoff strategies with an interactive extra-payment slider and projected debt-free timeline.
 - **Privacy & Security**: Optional local passcode vault lock, `Shift+P` Privacy Mask blur, and **AES-256-GCM password-encrypted `.vledger`** backup & restore.
 
-## Download Desktop App
+## Live Web App & Download Portal
 
-Download the latest native desktop installers directly from [GitHub Releases](https://github.com/AynLorebelle/vaultledger/releases):
+Try VaultLedger immediately in your browser (offline-capable PWA) or download the native desktop app:
 
-- **Windows**: `VaultLedger-*-win-x64-nsis.exe` (Installer) or `VaultLedger-*-win-x64-portable.exe` (Portable)
+- **Live Web Portal (Vercel)**: [https://vaultledger-zeta.vercel.app](https://vaultledger-zeta.vercel.app)
+- **Desktop Releases (GitHub)**: [https://github.com/AynLorebelle/vaultledger/releases](https://github.com/AynLorebelle/vaultledger/releases)
+
+- **Windows**: `VaultLedger-*-win-x64-setup.exe` (NSIS Installer) or `VaultLedger-*-win-x64-portable.exe` (Portable)
 - **macOS**: `VaultLedger-*-mac-*.dmg`
 - **Linux**: `VaultLedger-*-linux-*.AppImage`
 

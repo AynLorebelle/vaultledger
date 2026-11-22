@@ -57,6 +57,7 @@
       "package.json"
     ],
     "win": {
+      "signAndEditExecutable": false,
       "target": [
         {
           "target": "nsis",
@@ -67,16 +68,19 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "build/icon.ico",
-      "artifactName": "${productName}-${version}-win-${arch}-${target}.${ext}"
+      "icon": "build/icon.ico"
     },
     "nsis": {
+      "artifactName": "${productName}-${version}-win-${arch}-setup.${ext}",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "VaultLedger"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-win-${arch}-portable.${ext}"
     },
     "mac": {
       "target": ["dmg"],
